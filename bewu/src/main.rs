@@ -8,12 +8,25 @@ use std::net::SocketAddr;
 use tower::util::ServiceExt;
 use tower_http::services::ServeDir;
 use tower_http::services::ServeFile;
+use tower_http::trace::DefaultMakeSpan;
+use tower_http::trace::DefaultOnFailure;
+use tower_http::trace::DefaultOnRequest;
+use tower_http::trace::DefaultOnResponse;
 use tower_http::trace::TraceLayer;
 use tracing::error;
 use tracing::info;
+use tracing_subscriber::prelude::*;
+use tracing_subscriber::EnvFilter;
 
 fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt()
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer())
+        .with(
+            EnvFilter::default()
+                .add_directive(tracing::Level::INFO.into())
+                .add_directive(tracing::level_filters::LevelFilter::INFO.into())
+                .add_directive("tower_http=debug".parse()?),
+        )
         .try_init()
         .ok()
         .context("failed to init logger")?;
@@ -33,12 +46,15 @@ async fn async_main() -> anyhow::Result<()> {
     let serve_dir =
         get_service(ServeDir::new("public").not_found_service(ServeFile::new("public/index.html")))
             .handle_error(server_error);
-    let app = Router::new()
-        .layer(TraceLayer::new_for_http())
-        // .route("/", get(root))
-        .fallback_service(serve_dir);
+    let app = Router::new().fallback_service(serve_dir).layer(
+        TraceLayer::new_for_http()
+            .make_span_with(DefaultMakeSpan::new().level(tracing::Level::INFO))
+            .on_request(DefaultOnRequest::new().level(tracing::Level::INFO))
+            .on_response(DefaultOnResponse::new().level(tracing::Level::INFO))
+            .on_failure(DefaultOnFailure::new().level(tracing::Level::ERROR)),
+    );
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3001));
     let server = axum::Server::try_bind(&addr).context("failed to bind to address")?;
 
     info!("listening on {addr}");
