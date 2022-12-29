@@ -1,7 +1,14 @@
 use anyhow::Context;
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
 use axum::routing::get;
+use axum::routing::get_service;
 use axum::Router;
 use std::net::SocketAddr;
+use tower::util::ServiceExt;
+use tower_http::services::ServeDir;
+use tower_http::services::ServeFile;
+use tower_http::trace::TraceLayer;
 use tracing::error;
 use tracing::info;
 
@@ -18,8 +25,18 @@ fn main() -> anyhow::Result<()> {
     tokio_rt.block_on(async_main())
 }
 
+async fn server_error(_err: std::io::Error) -> impl IntoResponse {
+    (StatusCode::INTERNAL_SERVER_ERROR, "Server Error")
+}
+
 async fn async_main() -> anyhow::Result<()> {
-    let app = Router::new().route("/", get(root));
+    let serve_dir =
+        get_service(ServeDir::new("public").not_found_service(ServeFile::new("public/index.html")))
+            .handle_error(server_error);
+    let app = Router::new()
+        .layer(TraceLayer::new_for_http())
+        // .route("/", get(root))
+        .fallback_service(serve_dir);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     let server = axum::Server::try_bind(&addr).context("failed to bind to address")?;
