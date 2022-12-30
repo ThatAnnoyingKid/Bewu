@@ -1,11 +1,12 @@
+mod logger;
+
 use anyhow::Context;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::routing::get;
 use axum::routing::get_service;
 use axum::Router;
 use std::net::SocketAddr;
-use tower::util::ServiceExt;
+use std::path::Path;
 use tower_http::services::ServeDir;
 use tower_http::services::ServeFile;
 use tower_http::trace::DefaultMakeSpan;
@@ -15,37 +16,45 @@ use tower_http::trace::DefaultOnResponse;
 use tower_http::trace::TraceLayer;
 use tracing::error;
 use tracing::info;
-use tracing_subscriber::prelude::*;
-use tracing_subscriber::EnvFilter;
+
+#[derive(Debug, serde::Deserialize)]
+pub struct Config {
+    pub address: SocketAddr,
+}
+
+impl Config {
+    pub fn load_path<P>(path: P) -> anyhow::Result<Self>
+    where
+        P: AsRef<Path>,
+    {
+        let path = path.as_ref();
+        let data = std::fs::read_to_string(path)?;
+        toml::from_str(&data).context("failed to parse config")
+    }
+}
 
 fn main() -> anyhow::Result<()> {
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::fmt::layer())
-        .with(
-            EnvFilter::default()
-                .add_directive(tracing::Level::INFO.into())
-                .add_directive(tracing::level_filters::LevelFilter::INFO.into())
-                .add_directive("tower_http=debug".parse()?),
-        )
-        .try_init()
-        .ok()
-        .context("failed to init logger")?;
+    let config = Config::load_path("config.toml").context("failed to load config")?;
+    crate::logger::init().context("failed to init logger")?;
 
     let tokio_rt = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()?;
 
-    tokio_rt.block_on(async_main())
+    tokio_rt.block_on(async_main(config))
 }
 
 async fn server_error(_err: std::io::Error) -> impl IntoResponse {
     (StatusCode::INTERNAL_SERVER_ERROR, "Server Error")
 }
 
-async fn async_main() -> anyhow::Result<()> {
+async fn async_main(config: Config) -> anyhow::Result<()> {
+    let static_file_dir =
+        std::fs::canonicalize("public").context("failed to canonicalize static file dir")?;
+
     let serve_dir =
-        get_service(ServeDir::new("public").not_found_service(ServeFile::new("public/index.html")))
-            .handle_error(server_error);
+        ServeDir::new(static_file_dir).not_found_service(ServeFile::new("public/index.html"));
+    let serve_dir = get_service(serve_dir).handle_error(server_error);
     let app = Router::new().fallback_service(serve_dir).layer(
         TraceLayer::new_for_http()
             .make_span_with(DefaultMakeSpan::new().level(tracing::Level::INFO))
@@ -54,10 +63,9 @@ async fn async_main() -> anyhow::Result<()> {
             .on_failure(DefaultOnFailure::new().level(tracing::Level::ERROR)),
     );
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3001));
-    let server = axum::Server::try_bind(&addr).context("failed to bind to address")?;
+    let server = axum::Server::try_bind(&config.address).context("failed to bind to address")?;
 
-    info!("listening on {addr}");
+    info!("listening on {}", config.address);
 
     server
         .serve(app.into_make_service())
@@ -76,8 +84,4 @@ async fn async_main() -> anyhow::Result<()> {
         })
         .await
         .context("server error")
-}
-
-async fn root() -> &'static str {
-    "Hello, World!"
 }
