@@ -1,6 +1,6 @@
 use anyhow::ensure;
 use anyhow::Context;
-use std::path::Path;
+use cargo_metadata::MetadataCommand;
 use std::process::Command;
 use walkdir::WalkDir;
 
@@ -32,8 +32,9 @@ fn main() -> anyhow::Result<()> {
 
     match options.subcommand {
         Subcommand::Build(_options) => {
-            let current_dir = std::env::current_dir().context("failed to get current dir")?;
-            let frontend_dir = current_dir.join("../frontend");
+            let metadata = MetadataCommand::new().exec()?;
+
+            let frontend_dir = metadata.workspace_root.join("frontend");
 
             let output = Command::new(NPM_BIN)
                 .current_dir(&frontend_dir)
@@ -55,7 +56,7 @@ fn main() -> anyhow::Result<()> {
                 let relative_path = entry_path.strip_prefix(&dist_dir)?;
                 let file_type = entry.file_type();
 
-                let dest_path = Path::new("../bewu/public").join(relative_path);
+                let dest_path = metadata.workspace_root.join("bewu/public").join_os(relative_path);
                 if file_type.is_file() {
                     std::fs::copy(entry_path, dest_path)?;
                 } else {
