@@ -5,13 +5,17 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
+    "fmt": "prettier --write src",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^2.0.2",
+    "prettier": "^2.8.1",
+    "prettier-plugin-svelte": "^2.9.0",
     "svelte": "^3.55.0",
+    "svelte-spa-router": "^3.3.0",
     "vite": "^4.0.3"
   }
 }
