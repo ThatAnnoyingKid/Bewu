@@ -56,7 +56,10 @@ fn main() -> anyhow::Result<()> {
                 let relative_path = entry_path.strip_prefix(&dist_dir)?;
                 let file_type = entry.file_type();
 
-                let dest_path = metadata.workspace_root.join("bewu/public").join_os(relative_path);
+                let dest_path = metadata
+                    .workspace_root
+                    .join("bewu/public")
+                    .join_os(relative_path);
                 if file_type.is_file() {
                     std::fs::copy(entry_path, dest_path)?;
                 } else {
