@@ -2,10 +2,11 @@ name: Doc
 on:
   push:
    branches:
-   - master
+   - main
    
 jobs:
-  Doc:
+  doc:
+    name: Doc
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
