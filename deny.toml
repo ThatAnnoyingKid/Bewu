@@ -18,7 +18,7 @@ allow-osi-fsf-free = "neither"
 confidence-threshold = 0.93
 default = "deny"
 private = { ignore = true }
-allow = [ "Apache-2.0", "MIT", "Unicode-DFS-2016", "BSD-3-Clause" ]
+allow = [ "Apache-2.0", "MIT", "Unicode-DFS-2016", "BSD-3-Clause", "MPL-2.0", "ISC", "OpenSSL" ]
 exceptions = []
 
 [[licenses.clarify]]
@@ -37,7 +37,6 @@ license-files = [
 multiple-versions = "warn"
 highlight = "all"
 skip = []
-
 deny = []
 
 [sources]
@@ -45,3 +44,6 @@ unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = [ "https://github.com/rust-lang/crates.io-index" ]
 allow-git = []
+
+[sources.allow-org] 
+github = [ "adumbidiot" ]

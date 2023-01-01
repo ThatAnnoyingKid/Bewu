@@ -2,5 +2,5 @@
 members = [
     "bewu",
     "xtask",
-    # "lib/*",
+    "lib/*",
 ]
