@@ -1,11 +1,16 @@
 use crate::Config;
 
+use crate::AppState;
+use axum::extract::State;
 use axum::http::Request;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::response::Response;
+use axum::routing::get;
 use axum::routing::get_service;
+use axum::Json;
 use axum::Router;
+use std::sync::Arc;
 use tower_http::services::ServeDir;
 use tower_http::trace::DefaultMakeSpan;
 use tower_http::trace::DefaultOnFailure;
@@ -13,7 +18,7 @@ use tower_http::trace::DefaultOnRequest;
 use tower_http::trace::DefaultOnResponse;
 use tower_http::trace::TraceLayer;
 
-pub fn routes(config: &Config) -> anyhow::Result<Router> {
+pub fn routes(config: &Config, app_state: Arc<AppState>) -> anyhow::Result<Router> {
     let serve_dir = ServeDir::new(&config.public_directory)
         .not_found_service(tower::service_fn(not_found_error));
     let serve_dir = get_service(serve_dir).handle_error(server_error);
@@ -28,14 +33,19 @@ pub fn routes(config: &Config) -> anyhow::Result<Router> {
         .on_response(DefaultOnResponse::new().level(tracing::Level::INFO))
         .on_failure(DefaultOnFailure::new().level(tracing::Level::ERROR));
 
-    Ok(Router::new()
-        .nest("/api", api_routes())
+    let routes = Router::new()
+        .nest("/api", api_routes().with_state(app_state))
         .fallback_service(serve_dir)
-        .layer(trace_layer))
+        .layer(trace_layer);
+    Ok(routes)
 }
 
-fn api_routes() -> Router {
-    Router::new()
+fn api_routes() -> Router<Arc<AppState>> {
+    Router::new().route("/anime", get(api_anime_get))
+}
+
+async fn api_anime_get(State(_app_state): State<Arc<AppState>>) -> impl IntoResponse {
+    Json("WIP")
 }
 
 async fn not_found_error<T>(_req: Request<T>) -> Result<Response, std::io::Error> {

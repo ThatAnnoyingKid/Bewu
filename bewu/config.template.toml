@@ -1,5 +1,6 @@
 bind-address = "<server bind address>"
 public-directory = "<public assets directory>"
+data-directory = "<data directory>"
 
 [logging]
 include-headers = <true/false, whether to log headers>

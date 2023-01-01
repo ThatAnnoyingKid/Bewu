@@ -12,6 +12,9 @@ pub struct Config {
     #[serde(rename = "public-directory")]
     pub public_directory: PathBuf,
 
+    #[serde(rename = "data-directory")]
+    pub data_directory: PathBuf,
+
     #[serde(default)]
     pub logging: ConfigLogging,
 }
