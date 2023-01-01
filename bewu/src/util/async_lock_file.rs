@@ -77,12 +77,10 @@ impl AsyncLockFile {
             .context("failed to lock lock file")
     }
 
-    /*
     /// Try to lock the file, waiting if it is locked.
     pub async fn lock(&self) -> anyhow::Result<()> {
         self.send_lock_msg(true).await
     }
-    */
 
     /// Lock the file, exiting immediately if it is locked.
     pub async fn try_lock(&self) -> anyhow::Result<()> {

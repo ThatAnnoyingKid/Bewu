@@ -6,7 +6,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 anyhow = "1.0.68"
-async-rusqlite = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs" }
+async-rusqlite = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs", features = [ "bundled" ] }
 axum = { version = "0.6.1" } # , features = [ "macros" ]
 fd-lock = "3.0.8"
 serde = { version = "1.0.152", features = ["derive"] }

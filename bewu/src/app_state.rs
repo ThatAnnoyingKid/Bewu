@@ -3,10 +3,38 @@ use anyhow::Context;
 use std::path::Path;
 
 #[derive(Debug)]
-pub struct Database {}
+pub struct Database {
+    database: async_rusqlite::Database,
+}
+
+impl Database {
+    pub async fn new<P>(path: P) -> anyhow::Result<Self>
+    where
+        P: AsRef<Path>,
+    {
+        let path = path.as_ref();
+        let database = async_rusqlite::Database::open(path, true, |_database| Ok(())).await?;
+        Ok(Self { database })
+    }
+
+    /// Shut down the database.
+    ///
+    /// Should only be called once.
+    pub async fn shutdown(&self) -> anyhow::Result<()> {
+        self.database
+            .close()
+            .await
+            .context("failed to send close command")?;
+        self.database
+            .join()
+            .await
+            .context("failed to join database thread")
+    }
+}
 
 pub struct AppState {
     lock_file: AsyncLockFile,
+    database: Database,
 }
 
 impl AppState {
@@ -35,22 +63,36 @@ impl AppState {
             .await
             .context("another process is using the data directory")?;
 
-        // let database_path = data_directory.join("database.db");
+        let database_path = data_directory.join("database.db");
+        let database = Database::new(database_path)
+            .await
+            .context("failed to open database")?;
 
-        Ok(Self { lock_file })
+        Ok(Self {
+            lock_file,
+            database,
+        })
     }
 
     /// Shutdown the app state.
     ///
     /// This should only be called once
     pub async fn shutdown(&self) -> anyhow::Result<()> {
-        let unlock_result = self.lock_file.unlock().await;
-        let shutdown_result = self
+        let lock_file_unlock_result = self.lock_file.unlock().await;
+        let lock_file_shutdown_result = self
             .lock_file
             .shutdown()
             .await
             .context("failed to shutdown the lock file thread");
 
-        unlock_result.or(shutdown_result)
+        let database_shutdown_result = self
+            .database
+            .shutdown()
+            .await
+            .context("failed to shutdown the database");
+
+        database_shutdown_result
+            .or(lock_file_unlock_result)
+            .or(lock_file_shutdown_result)
     }
 }
