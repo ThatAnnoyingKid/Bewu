@@ -45,11 +45,12 @@ impl AppState {
     ///
     /// This should only be called once
     pub async fn shutdown(&self) -> anyhow::Result<()> {
-        let unlock_result = self
+        let unlock_result = self.lock_file.unlock().await;
+        let shutdown_result = self
             .lock_file
-            .unlock()
-            .await;
-        let shutdown_result = self.lock_file.shutdown().await.context("failed to shutdown the lock file thread");
+            .shutdown()
+            .await
+            .context("failed to shutdown the lock file thread");
 
         unlock_result.or(shutdown_result)
     }
