@@ -11,6 +11,9 @@ pub struct Config {
 
     #[serde(rename = "public-directory")]
     pub public_directory: PathBuf,
+
+    #[serde(default)]
+    pub logging: ConfigLogging,
 }
 
 impl Config {
@@ -38,5 +41,19 @@ impl Config {
         );
 
         Ok(config)
+    }
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct ConfigLogging {
+    #[serde(rename = "include-headers", default)]
+    pub include_headers: bool,
+}
+
+impl Default for ConfigLogging {
+    fn default() -> Self {
+        Self {
+            include_headers: false,
+        }
     }
 }
