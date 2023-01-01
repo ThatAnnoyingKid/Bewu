@@ -1,6 +1,9 @@
 use crate::util::AsyncLockFile;
 use anyhow::Context;
 use std::path::Path;
+use tracing::error;
+
+const SETUP_SQL: &str = include_str!("../sql/setup.sql");
 
 #[derive(Debug)]
 pub struct Database {
@@ -13,7 +16,13 @@ impl Database {
         P: AsRef<Path>,
     {
         let path = path.as_ref();
-        let database = async_rusqlite::Database::open(path, true, |_database| Ok(())).await?;
+        let database = async_rusqlite::Database::open(path, true, |database| {
+            database
+                .execute_batch(SETUP_SQL)
+                .context("failed to setup database")?;
+            Ok(())
+        })
+        .await?;
         Ok(Self { database })
     }
 
@@ -21,14 +30,31 @@ impl Database {
     ///
     /// Should only be called once.
     pub async fn shutdown(&self) -> anyhow::Result<()> {
+        let optmize_result = self
+            .database
+            .access_db(|database| {
+                database.execute("PRAGMA OPTIMIZE;", [])?;
+                database.execute("VACUUM;", [])
+            })
+            .await
+            .context("failed to access database")
+            .and_then(|v| v.context("failed to execute shutdown commands"))
+            .map(|_| ());
+
+        if let Err(e) = optmize_result.as_ref() {
+            error!("{}", e);
+        }
+
         self.database
             .close()
             .await
             .context("failed to send close command")?;
-        self.database
+        let join_result = self
+            .database
             .join()
             .await
-            .context("failed to join database thread")
+            .context("failed to join database thread");
+        join_result.or(optmize_result)
     }
 }
 
