@@ -2,6 +2,7 @@ mod app_state;
 mod config;
 mod logger;
 mod routes;
+pub mod util;
 
 pub use self::app_state::AppState;
 pub use self::config::Config;
