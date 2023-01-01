@@ -47,16 +47,8 @@ impl Config {
     }
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Default, serde::Deserialize)]
 pub struct ConfigLogging {
     #[serde(rename = "include-headers", default)]
     pub include_headers: bool,
-}
-
-impl Default for ConfigLogging {
-    fn default() -> Self {
-        Self {
-            include_headers: false,
-        }
-    }
 }
