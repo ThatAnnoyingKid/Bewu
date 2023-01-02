@@ -3,6 +3,10 @@ use anyhow::Context;
 use cargo_metadata::MetadataCommand;
 use std::process::Command;
 use walkdir::WalkDir;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+use std::sync::atomic::Ordering;
+use std::process::Stdio;
 
 #[cfg(windows)]
 const NPM_BIN: &str = "npm.cmd";
@@ -83,6 +87,11 @@ fn main() -> anyhow::Result<()> {
             ensure!(output.success(), "failed to run cargo");
         }
         Subcommand::Run(_options) => {
+            let running = Arc::new(AtomicBool::new(true));
+            ctrlc::set_handler(move || {
+                running.store(false, Ordering::SeqCst);
+            })?;
+            
             let metadata = MetadataCommand::new().exec()?;
 
             build_frontend(&metadata)?;
@@ -91,6 +100,9 @@ fn main() -> anyhow::Result<()> {
                 let output = Command::new("cargo")
                     .current_dir(metadata.workspace_root.join("bewu"))
                     .args(["run", "--bin", "bewu"])
+                    .stdout(Stdio::inherit())
+                    .stdin(Stdio::null())
+                    .stderr(Stdio::inherit())
                     .status()
                     .context("failed to spawn command")?;
                 ensure!(output.success(), "failed to run cargo");
@@ -98,7 +110,7 @@ fn main() -> anyhow::Result<()> {
                 Ok(())
             });
 
-            handle.join().ok().context("thread panicked")??;
+            handle.join().ok().context("server thread panicked")??;
         }
     }
 
