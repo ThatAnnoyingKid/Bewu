@@ -1,14 +1,13 @@
+mod api;
+
 use crate::Config;
 
 use crate::AppState;
-use axum::extract::State;
 use axum::http::Request;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::response::Response;
-use axum::routing::get;
 use axum::routing::get_service;
-use axum::Json;
 use axum::Router;
 use std::sync::Arc;
 use tower_http::services::ServeDir;
@@ -34,18 +33,10 @@ pub fn routes(config: &Config, app_state: Arc<AppState>) -> anyhow::Result<Route
         .on_failure(DefaultOnFailure::new().level(tracing::Level::ERROR));
 
     let routes = Router::new()
-        .nest("/api", api_routes().with_state(app_state))
+        .nest("/api", self::api::routes().with_state(app_state))
         .fallback_service(serve_dir)
         .layer(trace_layer);
     Ok(routes)
-}
-
-fn api_routes() -> Router<Arc<AppState>> {
-    Router::new().route("/anime", get(api_anime_get))
-}
-
-async fn api_anime_get(State(_app_state): State<Arc<AppState>>) -> impl IntoResponse {
-    Json("WIP")
 }
 
 async fn not_found_error<T>(_req: Request<T>) -> Result<Response, std::io::Error> {

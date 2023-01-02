@@ -1,66 +1,16 @@
+mod database;
+
+pub use self::database::Anime;
+pub use self::database::Database;
 use crate::util::AsyncLockFile;
 use anyhow::Context;
 use std::path::Path;
-use tracing::error;
-
-const SETUP_SQL: &str = include_str!("../sql/setup.sql");
-
-#[derive(Debug)]
-pub struct Database {
-    database: async_rusqlite::Database,
-}
-
-impl Database {
-    pub async fn new<P>(path: P) -> anyhow::Result<Self>
-    where
-        P: AsRef<Path>,
-    {
-        let path = path.as_ref();
-        let database = async_rusqlite::Database::open(path, true, |database| {
-            database
-                .execute_batch(SETUP_SQL)
-                .context("failed to setup database")?;
-            Ok(())
-        })
-        .await?;
-        Ok(Self { database })
-    }
-
-    /// Shut down the database.
-    ///
-    /// Should only be called once.
-    pub async fn shutdown(&self) -> anyhow::Result<()> {
-        let optmize_result = self
-            .database
-            .access_db(|database| {
-                database.execute("PRAGMA OPTIMIZE;", [])?;
-                database.execute("VACUUM;", [])
-            })
-            .await
-            .context("failed to access database")
-            .and_then(|v| v.context("failed to execute shutdown commands"))
-            .map(|_| ());
-
-        if let Err(e) = optmize_result.as_ref() {
-            error!("{}", e);
-        }
-
-        self.database
-            .close()
-            .await
-            .context("failed to send close command")?;
-        let join_result = self
-            .database
-            .join()
-            .await
-            .context("failed to join database thread");
-        join_result.or(optmize_result)
-    }
-}
+use std::sync::Arc;
 
 pub struct AppState {
     lock_file: AsyncLockFile,
     database: Database,
+    kitsu_client: kitsu::Client,
 }
 
 impl AppState {
@@ -82,6 +32,48 @@ impl AppState {
             }
         }
 
+        let kitsu_directory = data_directory.join("kistu");
+        match tokio::fs::create_dir(&kitsu_directory).await {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(e) => {
+                return Err(e).with_context(|| {
+                    format!(
+                        "failed to create kitsu directory \"{}\"",
+                        kitsu_directory.display()
+                    )
+                });
+            }
+        }
+
+        let kitsu_cover_directory = kitsu_directory.join("cover");
+        match tokio::fs::create_dir(&kitsu_cover_directory).await {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(e) => {
+                return Err(e).with_context(|| {
+                    format!(
+                        "failed to create kitsu cover directory \"{}\"",
+                        kitsu_cover_directory.display()
+                    )
+                });
+            }
+        }
+
+        let kitsu_poster_directory = kitsu_directory.join("poster");
+        match tokio::fs::create_dir(&kitsu_poster_directory).await {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(e) => {
+                return Err(e).with_context(|| {
+                    format!(
+                        "failed to create kitsu poster directory \"{}\"",
+                        kitsu_poster_directory.display()
+                    )
+                });
+            }
+        }
+
         let lock_file_path = data_directory.join("bewu.lock");
         let lock_file = AsyncLockFile::create(lock_file_path).await?;
         lock_file
@@ -94,10 +86,45 @@ impl AppState {
             .await
             .context("failed to open database")?;
 
+        let kitsu_client = kitsu::Client::new();
+
         Ok(Self {
             lock_file,
             database,
+            kitsu_client,
         })
+    }
+
+    /// Run a search on kitsu
+    ///
+    /// All returned data is cached.
+    pub async fn search_kitsu(&self, query: &str) -> anyhow::Result<Arc<[Anime]>> {
+        let document = self.kitsu_client.search(query).await?;
+        let document_data = document.data.context("missing document data")?;
+
+        let mut anime = Vec::with_capacity(document_data.len());
+        for item in document_data {
+            let attributes = item.attributes.context("missing attributes")?;
+
+            let id: u64 = item.id.as_deref().context("missing id")?.parse()?;
+            let slug = attributes.slug;
+            let synopsis = attributes.synopsis;
+            let title = attributes.canonical_title;
+            let rating = attributes.average_rating;
+
+            anime.push(Anime {
+                id,
+                slug,
+                synopsis,
+                title,
+                rating,
+            });
+        }
+        let anime: Arc<[Anime]> = anime.into();
+
+        self.database.update_kitsu_anime(anime.clone()).await?;
+
+        Ok(anime)
     }
 
     /// Shutdown the app state.

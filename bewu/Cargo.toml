@@ -9,6 +9,7 @@ anyhow = "1.0.68"
 async-rusqlite = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs", features = [ "bundled" ] }
 axum = { version = "0.6.1" } # , features = [ "macros" ]
 fd-lock = "3.0.8"
+kitsu = { path = "../lib/kitsu-rs", features = [ "rustls-tls" ], default-features = false }
 serde = { version = "1.0.152", features = ["derive"] }
 tokio = { version = "1.23.0", features = [ "rt", "rt-multi-thread", "signal" ] }
 toml = "0.5.10"

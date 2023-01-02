@@ -139,6 +139,7 @@ dependencies = [
  "async-rusqlite",
  "axum",
  "fd-lock",
+ "kitsu",
  "serde",
  "tokio",
  "toml",
