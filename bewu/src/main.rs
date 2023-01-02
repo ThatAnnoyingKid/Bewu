@@ -8,6 +8,7 @@ pub use self::app_state::AppState;
 pub use self::config::Config;
 use anyhow::Context;
 use std::sync::Arc;
+use std::time::Duration;
 use tracing::error;
 use tracing::info;
 
@@ -30,14 +31,16 @@ async fn async_main(config: Config) -> anyhow::Result<()> {
 
     info!("listening on {}", config.bind_address);
 
-    let result = async move {
+    let (shutdown_tx, mut shutdown_rx) = tokio::sync::oneshot::channel();
+    let mut server_task_handle = tokio::spawn(async move {
         server
             .serve(app.into_make_service())
             .with_graceful_shutdown(async {
-                match tokio::signal::ctrl_c()
+                let result = tokio::signal::ctrl_c()
                     .await
-                    .context("failed to register ctrl+c handler")
-                {
+                    .context("failed to register ctrl+c handler");
+                let _ = shutdown_tx.send(()).is_ok();
+                match result {
                     Ok(()) => {
                         info!("shutting down");
                     }
@@ -48,12 +51,41 @@ async fn async_main(config: Config) -> anyhow::Result<()> {
             })
             .await
             .context("server error")
-    }
-    .await;
+    });
+
+    let server_result = tokio::select! {
+        result = &mut server_task_handle => Some(result),
+        _ = &mut shutdown_rx => None,
+    };
+
+    let server_result = match server_result {
+        Some(result) => result,
+        None => {
+            let timeout_duration = Duration::from_secs(1);
+            let timeout_future = tokio::time::sleep(timeout_duration);
+            tokio::pin!(timeout_future);
+
+            tokio::select! {
+                _ = &mut timeout_future => {
+                    info!("server task did not exit within {:?}, aborting server task", timeout_duration);
+
+                    server_task_handle.abort();
+                    server_task_handle.await
+                }
+                result = &mut server_task_handle => result
+            }
+        }
+    };
+
+    let result = server_result
+        .context("failed to join server task")
+        .and_then(|r| r);
+
     let shutdown_result = app_state
         .shutdown()
         .await
         .context("failed to shutdown app state");
+
     if let Err(e) = shutdown_result.as_ref() {
         error!("{e}");
     }

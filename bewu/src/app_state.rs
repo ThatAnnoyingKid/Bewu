@@ -138,10 +138,10 @@ impl AppState {
             .shutdown()
             .await
             .context("failed to shutdown the database");
-           
+
         debug!("unlocking lock file");
         let lock_file_unlock_result = self.lock_file.unlock().await;
-        
+
         debug!("shutting down lock file thread");
         let lock_file_shutdown_result = self
             .lock_file

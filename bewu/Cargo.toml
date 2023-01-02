@@ -11,7 +11,7 @@ axum = { version = "0.6.1" } # , features = [ "macros" ]
 fd-lock = "3.0.8"
 kitsu = { path = "../lib/kitsu-rs", features = [ "rustls-tls" ], default-features = false }
 serde = { version = "1.0.152", features = ["derive"] }
-tokio = { version = "1.23.0", features = [ "rt", "rt-multi-thread", "signal" ] }
+tokio = { version = "1.23.0", features = [ "rt", "rt-multi-thread", "signal", "macros" ] }
 toml = "0.5.10"
 tower = "0.4.13"
 tower-http = { version = "0.3.5", features = [ "fs", "trace" ] }
