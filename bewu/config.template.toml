@@ -4,3 +4,4 @@ data-directory = "<data directory>"
 
 [logging]
 include-headers = <true/false, whether to log headers>
+directives = <a list of logging directives>

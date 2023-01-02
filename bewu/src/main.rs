@@ -13,7 +13,7 @@ use tracing::info;
 
 fn main() -> anyhow::Result<()> {
     let config = Config::load_path("config.toml").context("failed to load config")?;
-    crate::logger::init().context("failed to init logger")?;
+    crate::logger::init(&config).context("failed to init logger")?;
 
     let tokio_rt = tokio::runtime::Builder::new_multi_thread()
         .enable_all()

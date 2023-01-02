@@ -51,4 +51,7 @@ impl Config {
 pub struct ConfigLogging {
     #[serde(rename = "include-headers", default)]
     pub include_headers: bool,
+
+    #[serde(default)]
+    pub directives: Vec<String>,
 }

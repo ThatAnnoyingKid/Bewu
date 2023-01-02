@@ -6,6 +6,7 @@ use crate::util::AsyncLockFile;
 use anyhow::Context;
 use std::path::Path;
 use std::sync::Arc;
+use tracing::debug;
 
 pub struct AppState {
     lock_file: AsyncLockFile,
@@ -131,18 +132,22 @@ impl AppState {
     ///
     /// This should only be called once
     pub async fn shutdown(&self) -> anyhow::Result<()> {
-        let lock_file_unlock_result = self.lock_file.unlock().await;
-        let lock_file_shutdown_result = self
-            .lock_file
-            .shutdown()
-            .await
-            .context("failed to shutdown the lock file thread");
-
+        debug!("shutting down database");
         let database_shutdown_result = self
             .database
             .shutdown()
             .await
             .context("failed to shutdown the database");
+           
+        debug!("unlocking lock file");
+        let lock_file_unlock_result = self.lock_file.unlock().await;
+        
+        debug!("shutting down lock file thread");
+        let lock_file_shutdown_result = self
+            .lock_file
+            .shutdown()
+            .await
+            .context("failed to shutdown the lock file thread");
 
         database_shutdown_result
             .or(lock_file_unlock_result)
