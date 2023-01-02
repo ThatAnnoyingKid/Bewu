@@ -87,12 +87,18 @@ fn main() -> anyhow::Result<()> {
 
             build_frontend(&metadata)?;
 
-            let output = Command::new("cargo")
-                .current_dir(metadata.workspace_root.join("bewu"))
-                .args(["run", "--bin", "bewu"])
-                .status()
-                .context("failed to spawn command")?;
-            ensure!(output.success(), "failed to run cargo");
+            let handle = std::thread::spawn(move || {
+                let output = Command::new("cargo")
+                    .current_dir(metadata.workspace_root.join("bewu"))
+                    .args(["run", "--bin", "bewu"])
+                    .status()
+                    .context("failed to spawn command")?;
+                ensure!(output.success(), "failed to run cargo");
+
+                Ok(())
+            });
+
+            handle.join().ok().context("thread panicked")??;
         }
     }
 
