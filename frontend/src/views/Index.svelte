@@ -68,4 +68,9 @@
     background-color: var(--secondary-bg-color);
     border-color: var(--secondary-bg-color);
   }
+  
+  .input-container input:hover {
+    background-color: var(--secondary-bg-color);
+    border-color: var(--secondary-bg-color);
+  }
 </style>
