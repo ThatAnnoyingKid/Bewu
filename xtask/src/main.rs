@@ -2,11 +2,11 @@ use anyhow::ensure;
 use anyhow::Context;
 use cargo_metadata::MetadataCommand;
 use std::process::Command;
-use walkdir::WalkDir;
-use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
-use std::sync::atomic::Ordering;
 use std::process::Stdio;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
+use std::sync::Arc;
+use walkdir::WalkDir;
 
 #[cfg(windows)]
 const NPM_BIN: &str = "npm.cmd";
@@ -91,7 +91,7 @@ fn main() -> anyhow::Result<()> {
             ctrlc::set_handler(move || {
                 running.store(false, Ordering::SeqCst);
             })?;
-            
+
             let metadata = MetadataCommand::new().exec()?;
 
             build_frontend(&metadata)?;
