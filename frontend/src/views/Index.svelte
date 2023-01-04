@@ -1,12 +1,12 @@
 <script>
   import Api from "../api.js";
-  
+
   let searchResultsPromise = null;
 
-  let inputValue = "";  
+  let inputValue = "";
   function handleKeyDown(event) {
-    if(event.keyCode == 13) {
-        searchResultsPromise = Api.searchKitsu(inputValue);
+    if (event.keyCode == 13) {
+      searchResultsPromise = Api.searchKitsu(inputValue);
     }
   }
 </script>
@@ -15,7 +15,7 @@
   <div class="input-container">
     <input
       autocomplete="off"
-      maxlength="256"
+      maxlength="128"
       name="search"
       placeholder="Search"
       type="search"
@@ -23,14 +23,22 @@
       on:keydown={handleKeyDown}
     />
   </div>
-  {#if searchResultsPromise}
-  {#await searchResultsPromise}
-  Loading...
-  {:then results}
-  {JSON.stringify(results)}
-  {:catch error}
-  {error.message}
-  {/await}
+  {#if searchResultsPromise !== null}
+    {#await searchResultsPromise}
+      Loading...
+    {:then results}
+      {#if results.length == 0}
+        No Results
+      {:else}
+        <ol>
+          {#each results as entry}
+            <li>{JSON.stringify(entry)}</li>
+          {/each}
+        </ol>
+      {/if}
+    {:catch error}
+      {error.message}
+    {/await}
   {/if}
 </div>
 
@@ -42,6 +50,8 @@
   .input-container {
     display: flex;
     justify-content: center;
+    margin-top: 2em;
+    margin-bottom: 2em;
   }
 
   .input-container input {
@@ -57,21 +67,21 @@
     padding: 0.2em;
     outline: none;
   }
-  
+
   .input-container input::placeholder {
     color: var(--main-text-color);
     filter: brightness(85%);
   }
-  
+
   .input-container input::-webkit-search-cancel-button {
     display: none;
   }
-  
+
   .input-container input:focus {
     background-color: var(--secondary-bg-color);
     border-color: var(--secondary-bg-color);
   }
-  
+
   .input-container input:hover {
     background-color: var(--secondary-bg-color);
     border-color: var(--secondary-bg-color);
