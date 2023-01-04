@@ -7,6 +7,7 @@ use axum::routing::get;
 use axum::Json;
 use axum::Router;
 use std::sync::Arc;
+use tracing::error;
 
 #[derive(Debug, serde::Serialize)]
 struct ApiError {
@@ -60,10 +61,15 @@ async fn api_kitsu_search(
                 })
                 .collect::<Vec<_>>()
         })
-        .map_err(ApiError::from_anyhow);
+        .map_err(|error| {
+            error!("{error:?}");
+            ApiError::from_anyhow(error)
+        });
 
     match result {
         Ok(result) => (StatusCode::OK, Json(result)).into_response(),
-        Err(error) => (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response(),
+        Err(error) => {
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response()
+        },
     }
 }

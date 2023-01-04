@@ -48,7 +48,7 @@ pub struct Anime {
     pub age_rating: Option<AgeRating>,
 
     #[serde(rename = "ageRatingGuide")]
-    pub age_rating_guide: String,
+    pub age_rating_guide: Option<String>,
 
     pub subtype: Subtype,
     pub status: Status,

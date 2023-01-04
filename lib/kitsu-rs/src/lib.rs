@@ -51,6 +51,8 @@ mod tests {
         include_str!("../test_data/high_search.json"),
     ];
 
+    const ANIME: &[&str] = &[include_str!("../test_data/anime/46174.json")];
+
     #[test]
     fn parse_searches() {
         for search_json in SEARCHES {
@@ -65,6 +67,14 @@ mod tests {
                     panic!("{:#?}", e);
                 }
             }
+        }
+    }
+
+    #[test]
+    fn parse_anime() {
+        for anime in ANIME {
+            let _anime = serde_json::from_str::<JsonDocument<ResourceObject<Anime>>>(anime)
+                .expect("failed to parse");
         }
     }
 
