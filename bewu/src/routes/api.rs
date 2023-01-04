@@ -68,8 +68,6 @@ async fn api_kitsu_search(
 
     match result {
         Ok(result) => (StatusCode::OK, Json(result)).into_response(),
-        Err(error) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response()
-        },
+        Err(error) => (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response(),
     }
 }
