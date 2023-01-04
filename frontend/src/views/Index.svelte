@@ -1,17 +1,12 @@
 <script>
   import Api from "../api.js";
   
-  let raw = '';
+  let searchResultsPromise = null;
 
   let inputValue = "";  
   function handleKeyDown(event) {
     if(event.keyCode == 13) {
-        Api.searchKitsu(inputValue)
-            .then((json) => {
-                raw += JSON.stringify(json);
-            }).catch((error) => {
-                alert(error);
-            });
+        searchResultsPromise = Api.searchKitsu(inputValue);
     }
   }
 </script>
@@ -28,7 +23,15 @@
       on:keydown={handleKeyDown}
     />
   </div>
-  {raw}
+  {#if searchResultsPromise}
+  {#await searchResultsPromise}
+  Loading...
+  {:then results}
+  {JSON.stringify(results)}
+  {:catch error}
+  {error.message}
+  {/await}
+  {/if}
 </div>
 
 <style>
