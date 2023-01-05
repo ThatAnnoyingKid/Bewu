@@ -1,4 +1,5 @@
 <script>
+  import { link } from "svelte-spa-router";
   import Api from "../api.js";
 
   let searchResultsPromise = null;
@@ -30,9 +31,19 @@
       {#if results.length == 0}
         No Results
       {:else}
-        <ol>
+        <ol class="search-results">
           {#each results as entry}
-            <li>{JSON.stringify(entry)}</li>
+            <li>
+              <a href="/" use:link>
+                <img
+                  src="https://media.kitsu.io/anime/poster_images/{entry.id}/large.jpg"
+                  alt="{entry.title} cover image"
+                />
+                <div class="search-entry-title-container">
+                  <h2>{entry.title}</h2>
+                </div>
+              </a>
+            </li>
           {/each}
         </ol>
       {/if}
@@ -85,5 +96,32 @@
   .input-container input:hover {
     background-color: var(--secondary-bg-color);
     border-color: var(--secondary-bg-color);
+  }
+
+  .search-results {
+    list-style-type: none;
+  }
+
+  .search-results li a {
+    color: var(--main-text-color);
+    display: flex;
+    padding: 0.2em;
+    text-decoration: none;
+  }
+
+  .search-results img {
+    height: 10em;
+  }
+
+  .search-entry-title-container {
+    align-items: center;
+    display: flex;
+    flex-grow: 1;
+    justify-content: space-around;
+  }
+
+  .search-entry-title-container h2 {
+    font-size: 3em;
+    font-weight: 100;
   }
 </style>
