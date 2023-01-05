@@ -36,8 +36,10 @@
             <li>
               <a href="/" use:link>
                 <img
-                  src="https://media.kitsu.io/anime/poster_images/{entry.id}/large.jpg"
+                  src={entry.poster_large}
                   alt="{entry.title} cover image"
+                  width="550"
+                  height="780"
                 />
                 <div class="search-entry-title-container">
                   <h2>{entry.title}</h2>
@@ -99,29 +101,35 @@
   }
 
   .search-results {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
     list-style-type: none;
+    margin-block-start: 0;
+    margin-block-end: 0;
+    padding-inline-start: 0;
   }
 
   .search-results li a {
+    align-items: center;
     color: var(--main-text-color);
     display: flex;
+    flex-direction: column;
     padding: 0.2em;
     text-decoration: none;
+    width: 10em;
   }
 
   .search-results img {
-    height: 10em;
-  }
-
-  .search-entry-title-container {
-    align-items: center;
-    display: flex;
-    flex-grow: 1;
-    justify-content: space-around;
+    height: auto;
+    text-align: center;
+    width: 10em;
   }
 
   .search-entry-title-container h2 {
-    font-size: 3em;
     font-weight: 100;
+    margin: 0 0;
+    text-align: center;
   }
 </style>

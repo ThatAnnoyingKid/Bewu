@@ -43,6 +43,8 @@ struct ApiKitsuAnime {
     synopsis: Option<String>,
     title: String,
     rating: Option<String>,
+
+    poster_large: String,
 }
 
 async fn api_kitsu_search(
@@ -60,6 +62,8 @@ async fn api_kitsu_search(
                     synopsis: anime.synopsis.clone(),
                     title: anime.title.clone(),
                     rating: anime.rating.clone(),
+
+                    poster_large: anime.poster_large.clone(),
                 })
                 .collect::<Vec<_>>()
         })

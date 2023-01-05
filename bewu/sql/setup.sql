@@ -17,5 +17,7 @@ CREATE TABLE IF NOT EXISTS kitsu_anime (
     slug TEXT NOT NULL UNIQUE,
     synopsis TEXT,
     title TEXT NOT NULL,
-    rating TEXT
+    rating TEXT,
+    
+    poster_large TEXT NOT NULL
 ) STRICT;

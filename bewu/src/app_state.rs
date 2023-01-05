@@ -112,6 +112,7 @@ impl AppState {
             let synopsis = attributes.synopsis;
             let title = attributes.canonical_title;
             let rating = attributes.average_rating;
+            let poster_large = attributes.poster_image.large.to_string();
 
             anime.push(Anime {
                 id,
@@ -119,6 +120,7 @@ impl AppState {
                 synopsis,
                 title,
                 rating,
+                poster_large,
             });
         }
         let anime: Arc<[Anime]> = anime.into();

@@ -11,13 +11,15 @@ INSERT OR REPLACE INTO kitsu_anime (
     slug, 
     synopsis, 
     title, 
-    rating
+    rating,
+    poster_large
 ) VALUES (
     :id, 
     :slug, 
     :synopsis,
     :title,
-    :rating
+    :rating,
+    :poster_large
 );
 ";
 
@@ -28,6 +30,8 @@ pub struct Anime {
     pub synopsis: Option<String>,
     pub title: String,
     pub rating: Option<String>,
+
+    pub poster_large: String,
 }
 
 #[derive(Debug)]
@@ -65,6 +69,7 @@ impl Database {
                             ":synopsis": anime.synopsis,
                             ":title": anime.title,
                             ":rating": anime.rating,
+                            ":poster_large": anime.poster_large,
                         })?;
                     }
                 }
