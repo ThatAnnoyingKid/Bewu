@@ -2,8 +2,11 @@ import requests
 import json
 
 searches = [
-    "3-gatsu_no_Lion_2nd_Season",
+    "3-gatsu no Lion 2nd Season",
     "cowboy bebop",
+    "5 Centimeter per Second",
+    "food",
+    "high",
 ]
 
 def main():
