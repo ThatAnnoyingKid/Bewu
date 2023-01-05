@@ -49,6 +49,7 @@ mod tests {
         "5 Centimeter per Second",
         "food",
         "high",
+        "hello",
     ];
 
     const ANIME: &[&str] = &[

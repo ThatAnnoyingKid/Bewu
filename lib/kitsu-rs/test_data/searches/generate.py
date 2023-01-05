@@ -7,6 +7,7 @@ searches = [
     "5 Centimeter per Second",
     "food",
     "high",
+    "hello",
 ]
 
 def main():
