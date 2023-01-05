@@ -191,10 +191,10 @@ pub struct ImagesMetadata {
 
 #[derive(Debug, serde::Deserialize)]
 pub struct ImagesMetadataDimensions {
-    // pub tiny: ImageDimension,
-    // pub small: ImageDimension,
-    // pub medium: Option<ImageDimension>,
-    //pub large: ImageDimension,
+    pub tiny: ImageDimension,
+    pub small: ImageDimension,
+    pub medium: Option<ImageDimension>,
+    pub large: ImageDimension,
 }
 
 /// Image dimensions
