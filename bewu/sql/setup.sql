@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS kitsu_anime (
     id INTEGER NOT NULL UNIQUE PRIMARY KEY,
     
     slug TEXT NOT NULL UNIQUE,
-    synopsis TEXT NOT NULL,
+    synopsis TEXT,
     title TEXT NOT NULL,
     rating TEXT
 ) STRICT;

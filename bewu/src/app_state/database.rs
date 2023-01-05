@@ -25,7 +25,7 @@ INSERT OR REPLACE INTO kitsu_anime (
 pub struct Anime {
     pub id: u64,
     pub slug: String,
-    pub synopsis: String,
+    pub synopsis: Option<String>,
     pub title: String,
     pub rating: Option<String>,
 }

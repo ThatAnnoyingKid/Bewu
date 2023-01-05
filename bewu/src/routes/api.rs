@@ -40,6 +40,7 @@ struct KitsuSearchParams {
 #[derive(Debug, serde::Serialize)]
 struct ApiKitsuAnime {
     id: u64,
+    synopsis: Option<String>,
     title: String,
     rating: Option<String>,
 }
@@ -56,6 +57,7 @@ async fn api_kitsu_search(
                 .iter()
                 .map(|anime| ApiKitsuAnime {
                     id: anime.id,
+                    synopsis: anime.synopsis.clone(),
                     title: anime.title.clone(),
                     rating: anime.rating.clone(),
                 })
