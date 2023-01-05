@@ -7,7 +7,7 @@
         },
         "attributes": {
             "createdAt": "2022-06-11T02:29:39.475Z",
-            "updatedAt": "2023-01-04T06:00:09.913Z",
+            "updatedAt": "2023-01-05T06:00:03.907Z",
             "slug": "hello-calling",
             "synopsis": "Music video for the song HELLO CALLiNG by IDOLiSH7.",
             "description": "Music video for the song HELLO CALLiNG by IDOLiSH7.",
@@ -32,7 +32,7 @@
             "startDate": "2022-06-09",
             "endDate": "2022-06-09",
             "nextRelease": null,
-            "popularityRank": 19294,
+            "popularityRank": 19065,
             "ratingRank": null,
             "ageRating": "G",
             "ageRatingGuide": null,
