@@ -44,27 +44,34 @@ mod tests {
     use super::*;
 
     const SEARCHES: &[&str] = &[
-        include_str!("../test_data/3-gatsu_no_Lion_2nd_Season_search.json"),
-        include_str!("../test_data/cowboy_bebop_search.json"),
-        include_str!("../test_data/5_Centimeter_per_Second_search.json"),
-        include_str!("../test_data/food_search.json"),
-        include_str!("../test_data/high_search.json"),
+        "3-gatsu no Lion 2nd Season",
+        "cowboy bebop",
+        "5 Centimeter per Second",
+        "food",
+        "high",
     ];
 
-    const ANIME: &[&str] = &[include_str!("../test_data/anime/46174.json")];
+    const ANIME: &[&str] = &[
+        include_str!("../test_data/anime/46174.json"),
+        include_str!("../test_data/anime/13401.json"),
+    ];
 
     #[test]
     fn parse_searches() {
-        for search_json in SEARCHES {
-            let search =
-                serde_json::from_str::<JsonDocument<Vec<ResourceObject<Anime>>>>(search_json);
+        for search in SEARCHES {
+            let path = format!("test_data/searches/{search}.json");
+            let search_json = std::fs::read_to_string(&path).unwrap_or_else(|e| {
+                panic!("failed to read \"{path}\": {}", e);
+            });
+            let search_result =
+                serde_json::from_str::<JsonDocument<Vec<ResourceObject<Anime>>>>(&search_json);
 
-            match search {
+            match search_result {
                 Ok(_search) => {
                     // TODO: Consider comparing with "Answer" array.
                 }
                 Err(e) => {
-                    panic!("{:#?}", e);
+                    panic!("failed to parse \"{search}\": {e:#?}");
                 }
             }
         }
