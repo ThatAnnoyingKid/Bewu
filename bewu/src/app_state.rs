@@ -4,6 +4,7 @@ pub use self::database::Anime;
 pub use self::database::Database;
 use crate::util::AsyncLockFile;
 use anyhow::Context;
+use std::num::NonZeroU64;
 use std::path::Path;
 use std::sync::Arc;
 use tracing::debug;
@@ -126,6 +127,34 @@ impl AppState {
         let anime: Arc<[Anime]> = anime.into();
 
         self.database.update_kitsu_anime(anime.clone()).await?;
+
+        Ok(anime)
+    }
+
+    /// Get the kitsu anime for the given id.
+    pub async fn get_kitsu_anime(&self, id: NonZeroU64) -> anyhow::Result<Anime> {
+        let document = self.kitsu_client.get_anime(id).await?;
+        let document_data = document.data.context("missing document data")?;
+
+        let attributes = document_data.attributes.context("missing attributes")?;
+        let id: u64 = document_data.id.as_deref().context("missing id")?.parse()?;
+        let slug = attributes.slug;
+        let synopsis = attributes.synopsis;
+        let title = attributes.canonical_title;
+        let rating = attributes.average_rating;
+        let poster_large = attributes.poster_image.large.to_string();
+
+        let anime = Anime {
+            id,
+            slug,
+            synopsis,
+            title,
+            rating,
+            poster_large,
+        };
+
+        // TODO: Add to db
+        // self.database.update_kitsu_anime(anime.clone()).await?;
 
         Ok(anime)
     }

@@ -1,4 +1,5 @@
 use crate::AppState;
+use axum::extract::Path;
 use axum::extract::Query;
 use axum::extract::State;
 use axum::http::StatusCode;
@@ -6,6 +7,7 @@ use axum::response::IntoResponse;
 use axum::routing::get;
 use axum::Json;
 use axum::Router;
+use std::num::NonZeroU64;
 use std::sync::Arc;
 use tracing::error;
 
@@ -25,7 +27,8 @@ impl ApiError {
 pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/anime", get(api_anime_get))
-        .route("/kitsu/anime/search", get(api_kitsu_search))
+        .route("/kitsu/anime", get(api_kitsu_anime))
+        .route("/kitsu/anime/:id", get(api_kitsu_anime_id))
 }
 
 async fn api_anime_get(State(_app_state): State<Arc<AppState>>) -> impl IntoResponse {
@@ -47,7 +50,7 @@ struct ApiKitsuAnime {
     poster_large: String,
 }
 
-async fn api_kitsu_search(
+async fn api_kitsu_anime(
     State(app_state): State<Arc<AppState>>,
     Query(params): Query<KitsuSearchParams>,
 ) -> impl IntoResponse {
@@ -66,6 +69,32 @@ async fn api_kitsu_search(
                     poster_large: anime.poster_large.clone(),
                 })
                 .collect::<Vec<_>>()
+        })
+        .map_err(|error| {
+            error!("{error:?}");
+            ApiError::from_anyhow(error)
+        });
+
+    match result {
+        Ok(result) => (StatusCode::OK, Json(result)).into_response(),
+        Err(error) => (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response(),
+    }
+}
+
+async fn api_kitsu_anime_id(
+    State(app_state): State<Arc<AppState>>,
+    Path(id): Path<NonZeroU64>,
+) -> impl IntoResponse {
+    let result = app_state
+        .get_kitsu_anime(id)
+        .await
+        .map(|anime| ApiKitsuAnime {
+            id: anime.id,
+            synopsis: anime.synopsis.clone(),
+            title: anime.title.clone(),
+            rating: anime.rating.clone(),
+
+            poster_large: anime.poster_large.clone(),
         })
         .map_err(|error| {
             error!("{error:?}");
