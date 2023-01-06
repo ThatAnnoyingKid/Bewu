@@ -4,11 +4,11 @@
 
 <nav>
   <ul>
-    <li class = "home">
+    <li class="home">
       <a href="/" use:link>Bewu</a>
     </li>
     <li>
-       <a href="/kitsu" use:link>Kitsu</a>
+      <a href="/kitsu" use:link>Kitsu</a>
     </li>
   </ul>
 </nav>
@@ -41,7 +41,7 @@
     color: var(--main-text-color);
     text-decoration: none;
   }
-  
+
   .home {
     font-size: 2em;
   }
