@@ -6,37 +6,37 @@ use url::Url;
 pub struct Episode {
     #[serde(rename = "createdAt")]
     pub created_at: String,
-    
+
     #[serde(rename = "updatedAt")]
     pub updated_at: String,
-    
-     /// Titles?
+
+    /// Titles?
     pub titles: HashMap<String, Option<String>>,
-    
+
     /// The canonical title
     #[serde(rename = "canonicalTitle")]
     pub canonical_title: String,
-    
+
     /// The season number
     #[serde(rename = "seasonNumber")]
     pub season_number: u32,
-    
+
     /// ?
     pub number: u32,
-    
+
     /// ?
     #[serde(rename = "relativeNumber")]
     pub relative_number: Option<u32>,
-    
+
     /// Episode synopsis
     pub synopsis: String,
-    
+
     /// The date the epsiode was aired
     pub airdate: String,
-    
+
     /// The length of the episode in minutes
     pub length: u32,
-    
+
     /// Thumbnail data
     pub thumbnail: Thumbnail,
 }

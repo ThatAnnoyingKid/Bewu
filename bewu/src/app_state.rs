@@ -153,7 +153,9 @@ impl AppState {
             poster_large,
         };
 
-        self.database.update_kitsu_anime(Arc::from(std::slice::from_ref(&anime))).await?;
+        self.database
+            .update_kitsu_anime(Arc::from(std::slice::from_ref(&anime)))
+            .await?;
 
         Ok(anime)
     }

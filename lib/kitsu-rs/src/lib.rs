@@ -1,11 +1,11 @@
 mod anime;
 mod episode;
 
-pub use crate::episode::Episode;
 pub use crate::anime::AgeRating;
 pub use crate::anime::Anime;
 pub use crate::anime::Status;
 pub use crate::anime::Subtype;
+pub use crate::episode::Episode;
 pub use json_api::JsonDocument;
 pub use json_api::ResourceObject;
 use std::num::NonZeroU64;
@@ -49,9 +49,12 @@ impl Client {
         let url = format!("https://kitsu.io/api/edge/anime/{id}");
         Ok(self.client.get_json_document(&url).await?)
     }
-    
+
     /// Get anime epsiodes
-    pub async fn get_anime_episodes(&self, anime_id: NonZeroU64) -> Result<JsonDocument<Vec<ResourceObject<Episode>>>, Error> {
+    pub async fn get_anime_episodes(
+        &self,
+        anime_id: NonZeroU64,
+    ) -> Result<JsonDocument<Vec<ResourceObject<Episode>>>, Error> {
         let url = format!("https://kitsu.io/api/edge/anime/{anime_id}/episodes");
         Ok(self.client.get_json_document(&url).await?)
     }
@@ -115,7 +118,10 @@ mod tests {
             .await
             .expect("failed to get anime");
         dbg!(&anime);
-        let episodes = client.get_anime_episodes(anime_id).await.expect("failed to get anime episodes");
+        let episodes = client
+            .get_anime_episodes(anime_id)
+            .await
+            .expect("failed to get anime episodes");
         dbg!(&episodes);
     }
 }
