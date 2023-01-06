@@ -153,8 +153,7 @@ impl AppState {
             poster_large,
         };
 
-        // TODO: Add to db
-        // self.database.update_kitsu_anime(anime.clone()).await?;
+        self.database.update_kitsu_anime(Arc::from(std::slice::from_ref(&anime))).await?;
 
         Ok(anime)
     }
