@@ -1,5 +1,7 @@
 mod types;
+mod episode;
 
+pub use crate::episode::Episode;
 pub use crate::types::AgeRating;
 pub use crate::types::Anime;
 pub use crate::types::Status;
@@ -45,6 +47,12 @@ impl Client {
         id: NonZeroU64,
     ) -> Result<JsonDocument<ResourceObject<Anime>>, Error> {
         let url = format!("https://kitsu.io/api/edge/anime/{id}");
+        Ok(self.client.get_json_document(&url).await?)
+    }
+    
+    /// Get anime epsiodes
+    pub async fn get_anime_episodes(&self, anime_id: NonZeroU64) -> Result<JsonDocument<Vec<ResourceObject<Episode>>>, Error> {
+        let url = format!("https://kitsu.io/api/edge/anime/{anime_id}/episodes");
         Ok(self.client.get_json_document(&url).await?)
     }
 }
@@ -99,12 +107,15 @@ mod tests {
     #[tokio::test]
     async fn it_works() {
         let client = Client::new();
-        let search_result = client.search("food").await.unwrap();
+        let search_result = client.search("food").await.expect("failed to search");
         dbg!(&search_result);
+        let anime_id = NonZeroU64::new(1).unwrap();
         let anime = client
-            .get_anime(NonZeroU64::new(1).unwrap())
+            .get_anime(anime_id)
             .await
             .expect("failed to get anime");
         dbg!(&anime);
+        let episodes = client.get_anime_episodes(anime_id).await.expect("failed to get anime episodes");
+        dbg!(&episodes);
     }
 }
