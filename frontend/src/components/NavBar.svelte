@@ -4,8 +4,11 @@
 
 <nav>
   <ul>
-    <li>
+    <li class = "home">
       <a href="/" use:link>Bewu</a>
+    </li>
+    <li>
+       <a href="/kitsu" use:link>Kitsu</a>
     </li>
   </ul>
 </nav>
@@ -30,11 +33,16 @@
 
   li {
     display: block;
-    font-size: 2em;
+    font-size: 1.5em;
+    padding: 0.2em;
   }
 
   a {
     color: var(--main-text-color);
     text-decoration: none;
+  }
+  
+  .home {
+    font-size: 2em;
   }
 </style>
