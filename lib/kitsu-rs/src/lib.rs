@@ -1,11 +1,11 @@
-mod types;
+mod anime;
 mod episode;
 
 pub use crate::episode::Episode;
-pub use crate::types::AgeRating;
-pub use crate::types::Anime;
-pub use crate::types::Status;
-pub use crate::types::Subtype;
+pub use crate::anime::AgeRating;
+pub use crate::anime::Anime;
+pub use crate::anime::Status;
+pub use crate::anime::Subtype;
 pub use json_api::JsonDocument;
 pub use json_api::ResourceObject;
 use std::num::NonZeroU64;
