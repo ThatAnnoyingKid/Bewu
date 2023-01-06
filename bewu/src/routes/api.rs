@@ -29,6 +29,7 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/anime", get(api_anime_get))
         .route("/kitsu/anime", get(api_kitsu_anime))
         .route("/kitsu/anime/:id", get(api_kitsu_anime_id))
+    // .route("/kitsu/anime/episodes", get(api_kitsu_anime_id))
 }
 
 async fn api_anime_get(State(_app_state): State<Arc<AppState>>) -> impl IntoResponse {
@@ -94,7 +95,7 @@ async fn api_kitsu_anime_id(
             title: anime.title.clone(),
             rating: anime.rating.clone(),
 
-            poster_large: anime.poster_large.clone(),
+            poster_large: anime.poster_large,
         })
         .map_err(|error| {
             error!("{error:?}");
