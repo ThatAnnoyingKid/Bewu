@@ -26,6 +26,7 @@ struct Options {
 enum Subcommand {
     Build(BuildOptions),
     Run(RunOptions),
+    Fmt(FmtOptions),
 }
 
 #[derive(Debug, argh::FromArgs)]
@@ -35,6 +36,10 @@ struct BuildOptions {}
 #[derive(Debug, argh::FromArgs)]
 #[argh(subcommand, name = "run", description = "run the entire project")]
 struct RunOptions {}
+
+#[derive(Debug, argh::FromArgs)]
+#[argh(subcommand, name = "fmt", description = "fmt the entire project")]
+struct FmtOptions {}
 
 fn build_frontend(metadata: &cargo_metadata::Metadata) -> anyhow::Result<()> {
     let frontend_dir = metadata.workspace_root.join("frontend");
@@ -111,6 +116,23 @@ fn main() -> anyhow::Result<()> {
             });
 
             handle.join().ok().context("server thread panicked")??;
+        }
+        Subcommand::Fmt(_options) => {
+            let metadata = MetadataCommand::new().exec()?;
+
+            let output = Command::new(NPM_BIN)
+                .current_dir(&metadata.workspace_root.join("frontend"))
+                .args(["run", "fmt"])
+                .status()
+                .context("failed to spawn command")?;
+            ensure!(output.success(), "failed to run cargo");
+
+            let output = Command::new("cargo")
+                .current_dir(&metadata.workspace_root)
+                .args(["fmt", "--all"])
+                .status()
+                .context("failed to spawn command")?;
+            ensure!(output.success(), "failed to run cargo");
         }
     }
 
