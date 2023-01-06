@@ -97,7 +97,7 @@ impl AppState {
         })
     }
 
-    /// Run a search on kitsu
+    /// Run a search on kitsu.
     ///
     /// All returned data is cached.
     pub async fn search_kitsu(&self, query: &str) -> anyhow::Result<Arc<[Anime]>> {
@@ -137,7 +137,7 @@ impl AppState {
         let document_data = document.data.context("missing document data")?;
 
         let attributes = document_data.attributes.context("missing attributes")?;
-        let id: u64 = document_data.id.as_deref().context("missing id")?.parse()?;
+        let id: NonZeroU64 = document_data.id.as_deref().context("missing id")?.parse()?;
         let slug = attributes.slug;
         let synopsis = attributes.synopsis;
         let title = attributes.canonical_title;
@@ -145,7 +145,7 @@ impl AppState {
         let poster_large = attributes.poster_image.large.to_string();
 
         let anime = Anime {
-            id,
+            id: id.get(),
             slug,
             synopsis,
             title,
@@ -161,7 +161,7 @@ impl AppState {
 
     /// Shutdown the app state.
     ///
-    /// This should only be called once
+    /// This should only be called once.
     pub async fn shutdown(&self) -> anyhow::Result<()> {
         debug!("shutting down database");
         let database_shutdown_result = self
