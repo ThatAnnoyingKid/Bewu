@@ -58,9 +58,9 @@ struct ApiKitsuAnime {
 struct ApiKitsuEpisode {
     id: NonZeroU64,
 
-    title: String,
+    title: Option<String>,
 
-    thumbnail_original: String,
+    thumbnail_original: Option<String>,
 }
 
 async fn api_kitsu_anime(
@@ -132,8 +132,11 @@ async fn api_kitsu_anime_id_episodes(
                 .iter()
                 .map(|episode| ApiKitsuEpisode {
                     id: episode.episode_id,
-                    title: episode.title.to_string(),
-                    thumbnail_original: episode.thumbnail_original.to_string(),
+                    title: episode.title.as_ref().map(ToString::to_string),
+                    thumbnail_original: episode
+                        .thumbnail_original
+                        .as_ref()
+                        .map(ToString::to_string),
                 })
                 .collect::<Vec<_>>()
         })

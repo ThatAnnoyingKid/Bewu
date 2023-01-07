@@ -57,11 +57,11 @@ pub struct AnimeEpisode {
     pub episode_id: NonZeroU64,
     pub anime_id: NonZeroU64,
 
-    pub title: String,
-    pub synopsis: String,
+    pub title: Option<String>,
+    pub synopsis: Option<String>,
     pub length_minutes: u32,
 
-    pub thumbnail_original: String,
+    pub thumbnail_original: Option<String>,
 }
 
 #[derive(Debug)]

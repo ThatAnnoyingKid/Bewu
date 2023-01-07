@@ -26,11 +26,11 @@ CREATE TABLE IF NOT EXISTS kitsu_episodes (
     episode_id INTEGER NOT NULL UNIQUE PRIMARY KEY,
     anime_id INTEGER NOT NULL,
     
-    title TEXT NOT NULL,
-    synopsis TEXT NOT NULL,
+    title TEXT,
+    synopsis TEXT,
     length_minutes INTEGER NOT NULL,
     
-    thumbnail_original TEXT NOT NULL,
+    thumbnail_original TEXT,
     
     FOREIGN KEY (anime_id) REFERENCES kitsu_anime(id)
 ) STRICT;
