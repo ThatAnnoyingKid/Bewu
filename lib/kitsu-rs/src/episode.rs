@@ -15,11 +15,11 @@ pub struct Episode {
 
     /// The canonical title
     #[serde(rename = "canonicalTitle")]
-    pub canonical_title: String,
+    pub canonical_title: Option<String>,
 
     /// The season number
     #[serde(rename = "seasonNumber")]
-    pub season_number: u32,
+    pub season_number: Option<u32>,
 
     /// ?
     pub number: u32,
@@ -29,16 +29,16 @@ pub struct Episode {
     pub relative_number: Option<u32>,
 
     /// Episode synopsis
-    pub synopsis: String,
+    pub synopsis: Option<String>,
 
     /// The date the epsiode was aired
-    pub airdate: String,
+    pub airdate: Option<String>,
 
     /// The length of the episode in minutes
     pub length: u32,
 
     /// Thumbnail data
-    pub thumbnail: Thumbnail,
+    pub thumbnail: Option<Thumbnail>,
 }
 
 /// Thumbnail data

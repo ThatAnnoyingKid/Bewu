@@ -1,0 +1,37 @@
+{
+    "data": {
+        "id": "99605",
+        "type": "episodes",
+        "links": {
+            "self": "https://kitsu.io/api/edge/episodes/99605"
+        },
+        "attributes": {
+            "createdAt": "2013-02-20T18:29:27.756Z",
+            "updatedAt": "2018-11-27T20:44:42.560Z",
+            "synopsis": null,
+            "description": null,
+            "titles": {},
+            "canonicalTitle": null,
+            "seasonNumber": null,
+            "number": 1,
+            "relativeNumber": 1,
+            "airdate": null,
+            "length": 107,
+            "thumbnail": null
+        },
+        "relationships": {
+            "media": {
+                "links": {
+                    "self": "https://kitsu.io/api/edge/episodes/99605/relationships/media",
+                    "related": "https://kitsu.io/api/edge/episodes/99605/media"
+                }
+            },
+            "videos": {
+                "links": {
+                    "self": "https://kitsu.io/api/edge/episodes/99605/relationships/videos",
+                    "related": "https://kitsu.io/api/edge/episodes/99605/videos"
+                }
+            }
+        }
+    }
+}

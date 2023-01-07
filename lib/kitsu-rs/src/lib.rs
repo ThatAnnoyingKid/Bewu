@@ -78,6 +78,8 @@ mod tests {
         include_str!("../test_data/anime/13401.json"),
     ];
 
+    const EPISODES: &[&str] = &[include_str!("../test_data/episodes/99605.json")];
+
     #[test]
     fn parse_searches() {
         for search in SEARCHES {
@@ -103,6 +105,14 @@ mod tests {
     fn parse_anime() {
         for anime in ANIME {
             let _anime = serde_json::from_str::<JsonDocument<ResourceObject<Anime>>>(anime)
+                .expect("failed to parse");
+        }
+    }
+
+    #[test]
+    fn parse_episode() {
+        for episode in EPISODES {
+            let _episode = serde_json::from_str::<JsonDocument<ResourceObject<Episode>>>(episode)
                 .expect("failed to parse");
         }
     }
