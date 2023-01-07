@@ -109,7 +109,7 @@ impl AppState {
         for item in document_data {
             let attributes = item.attributes.context("missing attributes")?;
 
-            let id: u64 = item.id.as_deref().context("missing id")?.parse()?;
+            let id: NonZeroU64 = item.id.as_deref().context("missing id")?.parse()?;
             let slug = attributes.slug;
             let synopsis = attributes.synopsis;
             let title = attributes.canonical_title;
@@ -146,7 +146,7 @@ impl AppState {
         let poster_large = attributes.poster_image.large.into();
 
         let anime = Anime {
-            id: id.get(),
+            id,
             slug,
             synopsis,
             title,

@@ -43,7 +43,7 @@ INSERT OR REPLACE INTO kitsu_episodes (
 
 #[derive(Debug, Clone)]
 pub struct Anime {
-    pub id: u64,
+    pub id: NonZeroU64,
     pub slug: String,
     pub synopsis: Option<String>,
     pub title: String,
@@ -94,7 +94,7 @@ impl Database {
                     let mut statement = transaction.prepare_cached(UPDATE_KITSU_ANIME_SQL)?;
                     for anime in anime.iter() {
                         statement.execute(named_params! {
-                            ":id": anime.id,
+                            ":id": anime.id.get(),
                             ":slug": anime.slug,
                             ":synopsis": anime.synopsis,
                             ":title": anime.title,

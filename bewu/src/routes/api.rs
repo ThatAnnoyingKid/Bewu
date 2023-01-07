@@ -46,7 +46,7 @@ struct KitsuSearchParams {
 
 #[derive(Debug, serde::Serialize)]
 struct ApiKitsuAnime {
-    id: u64,
+    id: NonZeroU64,
     synopsis: Option<String>,
     title: String,
     rating: Option<String>,
