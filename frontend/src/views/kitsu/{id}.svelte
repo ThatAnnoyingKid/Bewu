@@ -38,7 +38,19 @@
     {#await episodeData}
       Loading...
     {:then episodes}
-      {JSON.stringify(episodes)}
+      <ol>
+        {#each episodes as episode}
+          <li>
+            <img
+              src={episode.thumbnail_original}
+              alt="thumbnail for {episode.title}"
+            />
+            <div class="episode-info-container">
+              <h3>{episode.title}</h3>
+            </div>
+          </li>
+        {/each}
+      </ol>
     {:catch error}
       {error.message}
     {/await}
@@ -71,11 +83,38 @@
   }
 
   .episodes-container {
-    padding-top: 0.5em;
+    padding-top: 3em;
   }
 
   h2 {
     margin: 0;
     font-weight: 100;
+  }
+
+  .episodes-container ol {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+  }
+
+  .episodes-container ol li {
+    display: flex;
+    list-style-type: none;
+    padding: 0.5em;
+  }
+
+  .episode-info-container {
+    align-items: center;
+    display: flex;
+    flex-grow: 1;
+    justify-content: center;
+    padding-left: 0.5em;
+  }
+
+  h3 {
+    font-weight: 100;
+    margin: 0;
+    padding: 0;
   }
 </style>
