@@ -1,5 +1,6 @@
 use anyhow::Context;
 use async_rusqlite::rusqlite::named_params;
+use std::num::NonZeroU64;
 use std::path::Path;
 use std::sync::Arc;
 use tracing::error;
@@ -22,6 +23,23 @@ INSERT OR REPLACE INTO kitsu_anime (
     :poster_large
 );
 ";
+const UPDATE_KITSU_EPISODES_SQL: &str = "
+INSERT OR REPLACE INTO kitsu_episodes (
+    episode_id,
+    anime_id,
+    title,
+    synopsis,
+    length_minutes,
+    thumbnail_original
+) VALUES (
+   :episode_id,
+   :anime_id,
+   :title,
+   :synopsis,
+   :length_minutes,
+   :thumbnail_original
+);
+";
 
 #[derive(Debug, Clone)]
 pub struct Anime {
@@ -32,6 +50,18 @@ pub struct Anime {
     pub rating: Option<String>,
 
     pub poster_large: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct AnimeEpisode {
+    pub episode_id: NonZeroU64,
+    pub anime_id: NonZeroU64,
+
+    pub title: String,
+    pub synopsis: String,
+    pub length_minutes: u32,
+
+    pub thumbnail_original: String,
 }
 
 #[derive(Debug)]
@@ -76,6 +106,32 @@ impl Database {
                 transaction.commit()?;
 
                 Result::<_, anyhow::Error>::Ok(anime)
+            })
+            .await??;
+        Ok(())
+    }
+
+    /// Update kitsu episodes
+    pub async fn update_kitsu_episodes(&self, episodes: Arc<[AnimeEpisode]>) -> anyhow::Result<()> {
+        self.database
+            .access_db(move |database| {
+                let transaction = database.transaction()?;
+                {
+                    let mut statement = transaction.prepare_cached(UPDATE_KITSU_EPISODES_SQL)?;
+                    for episode in episodes.iter() {
+                        statement.execute(named_params! {
+                            ":episode_id": episode.episode_id.get(),
+                            ":anime_id": episode.anime_id.get(),
+                            ":title": episode.title,
+                            ":synopsis": episode.synopsis,
+                            ":length_minutes": episode.length_minutes,
+                            ":thumbnail_original": episode.thumbnail_original,
+                        })?;
+                    }
+                }
+                transaction.commit()?;
+
+                Result::<_, anyhow::Error>::Ok(episodes)
             })
             .await??;
         Ok(())

@@ -1,6 +1,7 @@
 mod database;
 
 pub use self::database::Anime;
+pub use self::database::AnimeEpisode;
 pub use self::database::Database;
 use crate::util::AsyncLockFile;
 use anyhow::Context;
@@ -113,7 +114,7 @@ impl AppState {
             let synopsis = attributes.synopsis;
             let title = attributes.canonical_title;
             let rating = attributes.average_rating;
-            let poster_large = attributes.poster_image.large.to_string();
+            let poster_large = attributes.poster_image.large.into();
 
             anime.push(Anime {
                 id,
@@ -142,7 +143,7 @@ impl AppState {
         let synopsis = attributes.synopsis;
         let title = attributes.canonical_title;
         let rating = attributes.average_rating;
-        let poster_large = attributes.poster_image.large.to_string();
+        let poster_large = attributes.poster_image.large.into();
 
         let anime = Anime {
             id: id.get(),
@@ -158,6 +159,44 @@ impl AppState {
             .await?;
 
         Ok(anime)
+    }
+
+    /// Get kitsu episodes for the given anime id
+    pub async fn get_kitsu_episodes(
+        &self,
+        anime_id: NonZeroU64,
+    ) -> anyhow::Result<Arc<[AnimeEpisode]>> {
+        let document = self.kitsu_client.get_anime_episodes(anime_id).await?;
+        let document_data = document.data.context("missing document data")?;
+
+        let mut episodes = Vec::with_capacity(document_data.len());
+        for item in document_data {
+            let attributes = item.attributes.context("missing attributes")?;
+            let episode_id: NonZeroU64 = item.id.as_deref().context("missing id")?.parse()?;
+
+            let title = attributes.canonical_title;
+            let synopsis = attributes.synopsis;
+            let length_minutes: u32 = attributes.length;
+            let thumbnail_original = attributes.thumbnail.original.into();
+
+            episodes.push(AnimeEpisode {
+                anime_id,
+                episode_id,
+
+                title,
+                synopsis,
+                length_minutes,
+
+                thumbnail_original,
+            });
+        }
+        let episodes: Arc<[AnimeEpisode]> = episodes.into();
+
+        self.database
+            .update_kitsu_episodes(episodes.clone())
+            .await?;
+
+        Ok(episodes)
     }
 
     /// Shutdown the app state.

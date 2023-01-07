@@ -6,6 +6,7 @@
   let animeId = params.id;
 
   let animeData = Api.getKitsuAnime(animeId);
+  let episodeData = Api.getKitsuEpisodes(animeId);
 </script>
 
 <div class="container">
@@ -32,7 +33,16 @@
   {:catch error}
     {error.message}
   {/await}
-  <!--{#await}{/await}-->
+  <div class="episodes-container">
+    <h2>Episodes</h2>
+    {#await episodeData}
+      Loading...
+    {:then episodes}
+      {JSON.stringify(episodes)}
+    {:catch error}
+      {error.message}
+    {/await}
+  </div>
 </div>
 
 <style>
@@ -57,5 +67,15 @@
 
   h1 {
     margin: 0;
+    font-weight: 100;
+  }
+
+  .episodes-container {
+    padding-top: 0.5em;
+  }
+
+  h2 {
+    margin: 0;
+    font-weight: 100;
   }
 </style>

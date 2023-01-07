@@ -29,7 +29,10 @@ pub fn routes() -> Router<Arc<AppState>> {
         .route("/anime", get(api_anime_get))
         .route("/kitsu/anime", get(api_kitsu_anime))
         .route("/kitsu/anime/:id", get(api_kitsu_anime_id))
-    // .route("/kitsu/anime/episodes", get(api_kitsu_anime_id))
+        .route(
+            "/kitsu/anime/:id/episodes",
+            get(api_kitsu_anime_id_episodes),
+        )
 }
 
 async fn api_anime_get(State(_app_state): State<Arc<AppState>>) -> impl IntoResponse {
@@ -49,6 +52,15 @@ struct ApiKitsuAnime {
     rating: Option<String>,
 
     poster_large: String,
+}
+
+#[derive(Debug, serde::Serialize)]
+struct ApiKitsuEpisode {
+    id: NonZeroU64,
+
+    title: String,
+
+    thumbnail_original: String,
 }
 
 async fn api_kitsu_anime(
@@ -96,6 +108,34 @@ async fn api_kitsu_anime_id(
             rating: anime.rating.clone(),
 
             poster_large: anime.poster_large,
+        })
+        .map_err(|error| {
+            error!("{error:?}");
+            ApiError::from_anyhow(error)
+        });
+
+    match result {
+        Ok(result) => (StatusCode::OK, Json(result)).into_response(),
+        Err(error) => (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response(),
+    }
+}
+
+async fn api_kitsu_anime_id_episodes(
+    State(app_state): State<Arc<AppState>>,
+    Path(id): Path<NonZeroU64>,
+) -> impl IntoResponse {
+    let result = app_state
+        .get_kitsu_episodes(id)
+        .await
+        .map(|episodes| {
+            episodes
+                .iter()
+                .map(|episode| ApiKitsuEpisode {
+                    id: episode.episode_id,
+                    title: episode.title.to_string(),
+                    thumbnail_original: episode.thumbnail_original.to_string(),
+                })
+                .collect::<Vec<_>>()
         })
         .map_err(|error| {
             error!("{error:?}");

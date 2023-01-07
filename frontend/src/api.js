@@ -14,6 +14,13 @@ class Api {
     if (response.status != 200) throw convertToError(json);
     return json;
   }
+
+  async getKitsuEpisodes(id) {
+    let response = await fetch(`/api/kitsu/anime/${id}/episodes`);
+    let json = await response.json();
+    if (response.status != 200) throw convertToError(json);
+    return json;
+  }
 }
 
 function convertToError(json) {

@@ -21,3 +21,16 @@ CREATE TABLE IF NOT EXISTS kitsu_anime (
     
     poster_large TEXT NOT NULL
 ) STRICT;
+
+CREATE TABLE IF NOT EXISTS kitsu_episodes (
+    episode_id INTEGER NOT NULL UNIQUE PRIMARY KEY,
+    anime_id INTEGER NOT NULL,
+    
+    title TEXT NOT NULL,
+    synopsis TEXT NOT NULL,
+    length_minutes INTEGER NOT NULL,
+    
+    thumbnail_original TEXT NOT NULL,
+    
+    FOREIGN KEY (anime_id) REFERENCES kitsu_anime(id)
+) STRICT;
