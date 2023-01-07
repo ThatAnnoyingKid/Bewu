@@ -1,0 +1,3 @@
+test_data
+*.lock
+package-lock.json
