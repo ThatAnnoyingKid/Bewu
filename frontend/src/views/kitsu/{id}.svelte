@@ -4,8 +4,14 @@
   export let params = {};
 
   let animeId = params.id;
+  let animeTitle = null;
+  let animePosterLarge = null;
 
-  let animeData = Api.getKitsuAnime(animeId);
+  let animeData = Api.getKitsuAnime(animeId).then((anime) => {
+    animeTitle = anime.title;
+    animePosterLarge = anime.poster_large;
+    return anime;
+  });
   let episodeData = Api.getKitsuEpisodes(animeId);
 </script>
 
@@ -41,12 +47,20 @@
       <ol>
         {#each episodes as episode}
           <li>
+            <!-- 
+              Thumbnail data is not returned from the api.
+              While most are 400 x 300, some are not.
+              However, 400 x 300 is a good guess while loading, 
+              and we can fix it up with css if we are wrong.
+            -->
             <img
-              src={episode.thumbnail_original}
-              alt="thumbnail for {episode.title}"
+              src={episode.thumbnail_original || animePosterLarge}
+              alt="thumbnail for {episode.title || animeTitle}"
+              width="400"
+              height="300"
             />
             <div class="episode-info-container">
-              <h3>{episode.title}</h3>
+              <h3>{episode.title || animeTitle}</h3>
             </div>
           </li>
         {/each}
@@ -71,6 +85,7 @@
   img {
     width: 10em;
     height: auto;
+    text-align: center;
   }
 
   .anime-info {
