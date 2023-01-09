@@ -51,7 +51,7 @@ checksum = "149f75bbec1827618262e0855a68f0f9a7f2edc13faebf33c4f16d6725edb6a9"
 [[package]]
 name = "async-rusqlite"
 version = "0.0.0"
-source = "git+https://github.com/ThatAnnoyingKid/pikadick-rs#84942b2ca26b71344b85e917cb7ea0b65ae043dd"
+source = "git+https://github.com/ThatAnnoyingKid/pikadick-rs#daa4141afd1ec868359d86cffba767c63278b9c4"
 dependencies = [
  "rusqlite",
  "thiserror",
@@ -1266,9 +1266,9 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "tokio"
-version = "1.24.0"
+version = "1.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7125661431c26622a80ca5051a2f936c9a678318e0351007b0cc313143024e5c"
+checksum = "1d9f76183f91ecfb55e1d7d5602bd1d979e38a3a522fe900241cf195624d67ae"
 dependencies = [
  "autocfg",
  "bytes",
