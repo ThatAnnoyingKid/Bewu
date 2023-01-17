@@ -50,7 +50,7 @@ checksum = "64cb94155d965e3d37ffbbe7cc5b82c3dd79dd33bd48e536f73d2cfb8d85506f"
 [[package]]
 name = "async-rusqlite"
 version = "0.0.0"
-source = "git+https://github.com/ThatAnnoyingKid/pikadick-rs#daa4141afd1ec868359d86cffba767c63278b9c4"
+source = "git+https://github.com/ThatAnnoyingKid/pikadick-rs#b905ddb5493455ffa23fdfba08931ff336596bd4"
 dependencies = [
  "rusqlite",
  "thiserror",
