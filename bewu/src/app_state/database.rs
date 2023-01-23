@@ -59,7 +59,7 @@ pub struct AnimeEpisode {
 
     pub title: Option<String>,
     pub synopsis: Option<String>,
-    pub length_minutes: u32,
+    pub length_minutes: Option<u32>,
 
     pub thumbnail_original: Option<String>,
 }

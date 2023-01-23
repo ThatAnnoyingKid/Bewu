@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS kitsu_episodes (
     
     title TEXT,
     synopsis TEXT,
-    length_minutes INTEGER NOT NULL,
+    length_minutes INTEGER,
     
     thumbnail_original TEXT,
     

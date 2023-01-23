@@ -176,7 +176,7 @@ impl AppState {
 
             let title = attributes.canonical_title;
             let synopsis = attributes.synopsis;
-            let length_minutes: u32 = attributes.length;
+            let length_minutes: Option<u32> = attributes.length;
             let thumbnail_original = attributes
                 .thumbnail
                 .map(|thumbnail| thumbnail.original.into());
