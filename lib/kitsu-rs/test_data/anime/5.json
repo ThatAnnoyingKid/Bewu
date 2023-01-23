@@ -1,0 +1,193 @@
+{
+    "data": {
+        "id": "5",
+        "type": "anime",
+        "links": {
+            "self": "https://kitsu.io/api/edge/anime/5"
+        },
+        "attributes": {
+            "createdAt": "2013-02-20T16:00:18.955Z",
+            "updatedAt": "2023-01-23T06:00:10.490Z",
+            "slug": "beet-the-vandel-buster",
+            "synopsis": "It is the dark century and the people are suffering under the rule of the devil, Vandel, who is able to manipulate monsters. The Vandel Busters are a group of people who hunt these devils, and among them, the Zenon Squad is known to be the strongest busters on the continent. A young boy, Beet, dreams of joining the Zenon Squad. However, one day, as a result of Beet's fault, the Zenon squad was defeated by the devil, Beltose. The five dying busters sacrificed their life power into their five weapons, Saiga. After giving their weapons to Beet, they passed away. Years have passed since then and the young Vandel Buster, Beet, begins his adventure to carry out the Zenon Squad's will to put an end to the dark century. ",
+            "description": "It is the dark century and the people are suffering under the rule of the devil, Vandel, who is able to manipulate monsters. The Vandel Busters are a group of people who hunt these devils, and among them, the Zenon Squad is known to be the strongest busters on the continent. A young boy, Beet, dreams of joining the Zenon Squad. However, one day, as a result of Beet's fault, the Zenon squad was defeated by the devil, Beltose. The five dying busters sacrificed their life power into their five weapons, Saiga. After giving their weapons to Beet, they passed away. Years have passed since then and the young Vandel Buster, Beet, begins his adventure to carry out the Zenon Squad's will to put an end to the dark century. ",
+            "coverImageTopOffset": 0,
+            "titles": {
+                "en": "Beet the Vandel Buster",
+                "en_jp": "Beet the Vandel Buster",
+                "ja_jp": "\u5192\u967a\u738b\u30d3\u30a3\u30c8"
+            },
+            "canonicalTitle": "Beet the Vandel Buster",
+            "abbreviatedTitles": [
+                "Adventure King Beet",
+                "Bouken Ou Beet"
+            ],
+            "averageRating": "68.61",
+            "ratingFrequencies": {
+                "2": "3",
+                "3": "1",
+                "4": "9",
+                "5": "1",
+                "6": "8",
+                "7": "0",
+                "8": "29",
+                "9": "0",
+                "10": "52",
+                "11": "1",
+                "12": "77",
+                "13": "2",
+                "14": "123",
+                "15": "1",
+                "16": "78",
+                "17": "0",
+                "18": "30",
+                "19": "0",
+                "20": "35"
+            },
+            "userCount": 988,
+            "favoritesCount": 4,
+            "startDate": "2004-09-30",
+            "endDate": "2005-09-29",
+            "nextRelease": null,
+            "popularityRank": 4823,
+            "ratingRank": 5350,
+            "ageRating": "PG",
+            "ageRatingGuide": "Children",
+            "subtype": "TV",
+            "status": "finished",
+            "tba": "",
+            "posterImage": {
+                "tiny": "https://media.kitsu.io/anime/poster_images/5/tiny.jpg",
+                "large": "https://media.kitsu.io/anime/poster_images/5/large.jpg",
+                "small": "https://media.kitsu.io/anime/poster_images/5/small.jpg",
+                "medium": "https://media.kitsu.io/anime/poster_images/5/medium.jpg",
+                "original": "https://media.kitsu.io/anime/poster_images/5/original.jpg",
+                "meta": {
+                    "dimensions": {
+                        "tiny": {
+                            "width": 110,
+                            "height": 156
+                        },
+                        "large": {
+                            "width": 550,
+                            "height": 780
+                        },
+                        "small": {
+                            "width": 284,
+                            "height": 402
+                        },
+                        "medium": {
+                            "width": 390,
+                            "height": 554
+                        }
+                    }
+                }
+            },
+            "coverImage": null,
+            "episodeCount": 52,
+            "episodeLength": null,
+            "totalLength": 23,
+            "youtubeVideoId": "",
+            "showType": "TV",
+            "nsfw": false
+        },
+        "relationships": {
+            "genres": {
+                "links": {
+                    "self": "https://kitsu.io/api/edge/anime/5/relationships/genres",
+                    "related": "https://kitsu.io/api/edge/anime/5/genres"
+                }
+            },
+            "categories": {
+                "links": {
+                    "self": "https://kitsu.io/api/edge/anime/5/relationships/categories",
+                    "related": "https://kitsu.io/api/edge/anime/5/categories"
+                }
+            },
+            "castings": {
+                "links": {
+                    "self": "https://kitsu.io/api/edge/anime/5/relationships/castings",
+                    "related": "https://kitsu.io/api/edge/anime/5/castings"
+                }
+            },
+            "installments": {
+                "links": {
+                    "self": "https://kitsu.io/api/edge/anime/5/relationships/installments",
+                    "related": "https://kitsu.io/api/edge/anime/5/installments"
+                }
+            },
+            "mappings": {
+                "links": {
+                    "self": "https://kitsu.io/api/edge/anime/5/relationships/mappings",
+                    "related": "https://kitsu.io/api/edge/anime/5/mappings"
+                }
+            },
+            "reviews": {
+                "links": {
+                    "self": "https://kitsu.io/api/edge/anime/5/relationships/reviews",
+                    "related": "https://kitsu.io/api/edge/anime/5/reviews"
+                }
+            },
+            "mediaRelationships": {
+                "links": {
+                    "self": "https://kitsu.io/api/edge/anime/5/relationships/media-relationships",
+                    "related": "https://kitsu.io/api/edge/anime/5/media-relationships"
+                }
+            },
+            "characters": {
+                "links": {
+                    "self": "https://kitsu.io/api/edge/anime/5/relationships/characters",
+                    "related": "https://kitsu.io/api/edge/anime/5/characters"
+                }
+            },
+            "staff": {
+                "links": {
+                    "self": "https://kitsu.io/api/edge/anime/5/relationships/staff",
+                    "related": "https://kitsu.io/api/edge/anime/5/staff"
+                }
+            },
+            "productions": {
+                "links": {
+                    "self": "https://kitsu.io/api/edge/anime/5/relationships/productions",
+                    "related": "https://kitsu.io/api/edge/anime/5/productions"
+                }
+            },
+            "quotes": {
+                "links": {
+                    "self": "https://kitsu.io/api/edge/anime/5/relationships/quotes",
+                    "related": "https://kitsu.io/api/edge/anime/5/quotes"
+                }
+            },
+            "episodes": {
+                "links": {
+                    "self": "https://kitsu.io/api/edge/anime/5/relationships/episodes",
+                    "related": "https://kitsu.io/api/edge/anime/5/episodes"
+                }
+            },
+            "streamingLinks": {
+                "links": {
+                    "self": "https://kitsu.io/api/edge/anime/5/relationships/streaming-links",
+                    "related": "https://kitsu.io/api/edge/anime/5/streaming-links"
+                }
+            },
+            "animeProductions": {
+                "links": {
+                    "self": "https://kitsu.io/api/edge/anime/5/relationships/anime-productions",
+                    "related": "https://kitsu.io/api/edge/anime/5/anime-productions"
+                }
+            },
+            "animeCharacters": {
+                "links": {
+                    "self": "https://kitsu.io/api/edge/anime/5/relationships/anime-characters",
+                    "related": "https://kitsu.io/api/edge/anime/5/anime-characters"
+                }
+            },
+            "animeStaff": {
+                "links": {
+                    "self": "https://kitsu.io/api/edge/anime/5/relationships/anime-staff",
+                    "related": "https://kitsu.io/api/edge/anime/5/anime-staff"
+                }
+            }
+        }
+    }
+}

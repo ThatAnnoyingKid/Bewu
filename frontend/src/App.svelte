@@ -11,7 +11,7 @@
     "/": Index,
     "/kitsu": Kitsu,
     "/kitsu/:id": KitsuId,
-	"/kitsu/:id/:episodeId": episode,
+    "/kitsu/:id/:episodeId": episode,
   };
 </script>
 

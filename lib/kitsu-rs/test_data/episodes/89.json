@@ -1,0 +1,44 @@
+{
+    "data": {
+        "id": "89",
+        "type": "episodes",
+        "links": {
+            "self": "https://kitsu.io/api/edge/episodes/89"
+        },
+        "attributes": {
+            "createdAt": "2013-02-20T18:20:39.365Z",
+            "updatedAt": "2021-09-17T03:17:00.970Z",
+            "synopsis": "",
+            "description": "",
+            "titles": {
+                "en_jp": "Attacking Satoshi military officer"
+            },
+            "canonicalTitle": "Attacking Satoshi military officer",
+            "seasonNumber": 1,
+            "number": 10,
+            "relativeNumber": 10,
+            "airdate": "2004-12-02",
+            "length": null,
+            "thumbnail": {
+                "original": "https://media.kitsu.io/episodes/thumbnails/89/original.jpg",
+                "meta": {
+                    "dimensions": {}
+                }
+            }
+        },
+        "relationships": {
+            "media": {
+                "links": {
+                    "self": "https://kitsu.io/api/edge/episodes/89/relationships/media",
+                    "related": "https://kitsu.io/api/edge/episodes/89/media"
+                }
+            },
+            "videos": {
+                "links": {
+                    "self": "https://kitsu.io/api/edge/episodes/89/relationships/videos",
+                    "related": "https://kitsu.io/api/edge/episodes/89/videos"
+                }
+            }
+        }
+    }
+}

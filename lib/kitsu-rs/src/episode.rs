@@ -35,7 +35,7 @@ pub struct Episode {
     pub airdate: Option<String>,
 
     /// The length of the episode in minutes
-    pub length: u32,
+    pub length: Option<u32>,
 
     /// Thumbnail data
     pub thumbnail: Option<Thumbnail>,

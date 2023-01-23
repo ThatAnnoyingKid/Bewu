@@ -32,5 +32,5 @@ CREATE TABLE IF NOT EXISTS kitsu_episodes (
     
     thumbnail_original TEXT,
     
-    FOREIGN KEY (anime_id) REFERENCES kitsu_anime(id)
+    FOREIGN KEY (anime_id) REFERENCES kitsu_anime (id)
 ) STRICT;

@@ -76,9 +76,13 @@ mod tests {
     const ANIME: &[&str] = &[
         include_str!("../test_data/anime/46174.json"),
         include_str!("../test_data/anime/13401.json"),
+        include_str!("../test_data/anime/5.json"),
     ];
 
-    const EPISODES: &[&str] = &[include_str!("../test_data/episodes/99605.json")];
+    const EPISODES: &[&str] = &[
+        include_str!("../test_data/episodes/99605.json"),
+        include_str!("../test_data/episodes/89.json"),
+    ];
 
     #[test]
     fn parse_searches() {
