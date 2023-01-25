@@ -46,7 +46,7 @@
     {:then episodes}
       <ol>
         {#each episodes as episode}
-          <li>
+          <li> <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"> <!-- make it go to episode page thingy -->
             <!-- 
               Thumbnail data is not returned from the api.
               While most are 400 x 300, some are not.
@@ -62,7 +62,7 @@
             <div class="episode-info-container">
               <h3>{episode.title || animeTitle}</h3>
             </div>
-          </li>
+          </a> </li>
         {/each}
       </ol>
     {:catch error}
