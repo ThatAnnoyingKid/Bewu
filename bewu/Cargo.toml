@@ -8,7 +8,7 @@ license = "MIT OR Apache-2.0"
 anyhow = "1.0.68"
 async-rusqlite = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs", features = [ "bundled" ] }
 axum = "0.6.3"
-fd-lock = "3.0.8"
+fd-lock = "3.0.9"
 kitsu = { path = "../lib/kitsu-rs", features = [ "rustls-tls" ], default-features = false }
 serde = { version = "1.0.152", features = ["derive"] }
 tokio = { version = "1.24.2", features = [ "rt", "rt-multi-thread", "signal", "macros" ] }
