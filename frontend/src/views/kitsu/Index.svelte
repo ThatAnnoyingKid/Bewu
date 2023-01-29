@@ -41,7 +41,7 @@
         <ol class="search-results">
           {#each results as entry}
             <li>
-              <a href="/kitsu/{entry.id}" use:link>
+              <a href="/kitsu/anime/{entry.id}" use:link>
                 <img
                   src={entry.poster_large}
                   alt="{entry.title} cover image"
