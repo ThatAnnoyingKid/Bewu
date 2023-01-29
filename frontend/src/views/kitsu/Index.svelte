@@ -1,6 +1,6 @@
 <script>
   import { link, location, querystring, push } from "svelte-spa-router";
-  import Api from "../../api.js";
+  import Api from "@/api.js";
 
   let searchParams = new URLSearchParams($querystring);
   let searchText = searchParams.get("text");
