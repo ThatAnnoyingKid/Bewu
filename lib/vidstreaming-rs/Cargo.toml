@@ -2,6 +2,7 @@
 name = "vidstreaming"
 version = "0.0.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 itoa = "1.0.5"

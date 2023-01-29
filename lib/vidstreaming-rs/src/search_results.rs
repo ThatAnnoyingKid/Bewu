@@ -1,3 +1,4 @@
+use crate::BASE_URL;
 use once_cell::sync::Lazy;
 use scraper::ElementRef;
 use scraper::Html;
@@ -77,15 +78,13 @@ impl SearchEntry {
             .trim()
             .to_string();
 
-        let base_url = Url::parse(crate::BASE_URL).expect("invalid base url");
-
         let relative_url = el
             .select(&A_SELECTOR)
             .next()
             .and_then(|el| el.value().attr("href"))
             .ok_or(FromElementError::MissingUrl)?;
 
-        let url = base_url
+        let url = BASE_URL
             .join(relative_url)
             .map_err(FromElementError::InvalidUrl)?;
 

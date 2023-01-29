@@ -1,3 +1,4 @@
+use crate::Episode;
 use crate::Error;
 use crate::SearchResults;
 use crate::SEARCH_URL;
@@ -56,6 +57,13 @@ impl Client {
             .get_html(url.as_str(), |html| SearchResults::from_html(&html))
             .await??;
         Ok(results)
+    }
+
+    /// Get an episode by url
+    pub async fn get_episode(&self, url: &str) -> Result<Episode, Error> {
+        Ok(self
+            .get_html(url, |html| Episode::from_html(&html))
+            .await??)
     }
 }
 
