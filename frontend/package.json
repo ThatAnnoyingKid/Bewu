@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "fmt": "prettier --write src",
+    "fmt": "prettier --write src *.json *.js *.html",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
