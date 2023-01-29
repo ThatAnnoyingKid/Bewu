@@ -347,8 +347,8 @@ impl Source {
     }
 }
 
-/*
-/// Get the best source
+impl VideoData {
+    /// Get the best source
     pub fn get_best_source(&self) -> Option<&Source> {
         let mut source_1080_p = None;
         let mut source_720_p = None;
@@ -357,7 +357,7 @@ impl Source {
         let mut source_hls = None;
         let mut source_auto_p = None;
 
-        for source in self.video_data.source.iter() {
+        for source in self.source.iter() {
             match source.label.as_str() {
                 "1080 P" => {
                     source_1080_p = Some(source);
@@ -388,7 +388,7 @@ impl Source {
             .or(source_hls)
             .or(source_auto_p)
     }
-*/
+}
 
 #[cfg(test)]
 mod test {
