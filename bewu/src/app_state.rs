@@ -4,6 +4,7 @@ pub use self::database::Anime;
 pub use self::database::AnimeEpisode;
 pub use self::database::Database;
 use crate::util::AsyncLockFile;
+use anyhow::ensure;
 use anyhow::Context;
 use std::num::NonZeroU64;
 use std::path::Path;
@@ -199,6 +200,70 @@ impl AppState {
             .await?;
 
         Ok(episodes)
+    }
+
+    /// Get a kitsu episode by id
+    pub async fn get_kitsu_episode(&self, id: NonZeroU64) -> anyhow::Result<AnimeEpisode> {
+        let document_handle = {
+            let client = self.kitsu_client.clone();
+            tokio::spawn(async move { client.get_episode(id).await })
+        };
+
+        // TODO: Can we avoid a look-up by using the database?
+        // Note: I hate that this is necessary.
+        let anime_id_handle = {
+            // TODO: Investigate url more and add to kitsu lib
+            #[derive(Debug, serde::Deserialize)]
+            struct EpisodeMediaRelationshipMedia {
+                /// The anime id
+                pub id: String,
+
+                /// The anime type
+                #[serde(rename = "type")]
+                pub kind: String,
+            }
+
+            let client = self.kitsu_client.client.clone();
+            let url = format!("https://kitsu.io/api/edge/episodes/{id}/relationships/media");
+            tokio::spawn(async move {
+                let document = client
+                    .get_json_document::<EpisodeMediaRelationshipMedia>(&url)
+                    .await?;
+                let document_data = document.data.context("missing document data")?;
+
+                ensure!(document_data.kind == "anime");
+
+                let id: NonZeroU64 = document_data.id.parse()?;
+
+                Result::<_, anyhow::Error>::Ok(id)
+            })
+        };
+
+        let anime_id = anime_id_handle.await??;
+
+        let document = document_handle.await??;
+        let document_data = document.data.context("missing document data")?;
+
+        let attributes = document_data.attributes.context("missing attributes")?;
+        let episode_id: NonZeroU64 = document_data.id.as_deref().context("missing id")?.parse()?;
+
+        let title = attributes.canonical_title;
+        let synopsis = attributes.synopsis;
+        let length_minutes: Option<u32> = attributes.length;
+        let thumbnail_original = attributes
+            .thumbnail
+            .map(|thumbnail| thumbnail.original.into());
+
+        Ok(AnimeEpisode {
+            anime_id,
+            episode_id,
+
+            title,
+            synopsis,
+            length_minutes,
+
+            thumbnail_original,
+        })
     }
 
     /// Shutdown the app state.
