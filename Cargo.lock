@@ -147,6 +147,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "vidstreaming",
 ]
 
 [[package]]

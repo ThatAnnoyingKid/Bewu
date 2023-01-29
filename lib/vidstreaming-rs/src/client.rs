@@ -88,7 +88,7 @@ mod test {
         dbg!(&res);
         assert!(!res.entries.is_empty());
     }
-    
+
     #[tokio::test]
     async fn get_episode() {
         let client = Client::new();

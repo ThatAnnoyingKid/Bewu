@@ -14,7 +14,9 @@ use tracing::debug;
 pub struct AppState {
     lock_file: AsyncLockFile,
     database: Database,
+
     kitsu_client: kitsu::Client,
+    vidstreaming_client: vidstreaming::Client,
 }
 
 impl AppState {
@@ -91,11 +93,14 @@ impl AppState {
             .context("failed to open database")?;
 
         let kitsu_client = kitsu::Client::new();
+        let vidstreaming_client = vidstreaming::Client::new();
 
         Ok(Self {
             lock_file,
             database,
+
             kitsu_client,
+            vidstreaming_client,
         })
     }
 
