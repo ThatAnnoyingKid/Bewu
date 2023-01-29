@@ -1,6 +1,9 @@
+use crate::EncryptedVideoData;
 use crate::Episode;
 use crate::Error;
 use crate::SearchResults;
+use crate::VideoData;
+use crate::VideoPlayer;
 use crate::SEARCH_URL;
 use scraper::Html;
 use std::num::NonZeroU32;
@@ -27,14 +30,8 @@ impl Client {
         F: FnOnce(Html) -> T + Send + 'static,
         T: Send + 'static,
     {
-        let text = self
-            .client
-            .get(url)
-            .send()
-            .await?
-            .error_for_status()?
-            .text()
-            .await?;
+        let response = self.client.get(url).send().await?.error_for_status()?;
+        let text = response.text().await?;
         Ok(tokio::task::spawn_blocking(move || {
             let html = Html::parse_document(&text);
             transform(html)
@@ -65,6 +62,32 @@ impl Client {
             .get_html(url, |html| Episode::from_html(&html))
             .await??)
     }
+
+    /// Get an episode's video player by url
+    pub async fn get_video_player(&self, url: &str) -> Result<VideoPlayer, Error> {
+        Ok(self
+            .get_html(url, |html| VideoPlayer::from_html(&html))
+            .await??)
+    }
+
+    /// Get the video data for a given video player
+    pub async fn get_video_player_video_data(
+        &self,
+        player: &VideoPlayer,
+    ) -> Result<VideoData, Error> {
+        let url = player.generate_video_data_url()?;
+        let encrypted_video_data: EncryptedVideoData = self
+            .client
+            .get(url.as_str())
+            .header("X-Requested-With", "XMLHttpRequest")
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+        let video_data = encrypted_video_data.decrypt(player)?;
+        Ok(video_data)
+    }
 }
 
 impl Default for Client {
@@ -93,9 +116,37 @@ mod test {
     async fn get_episode() {
         let client = Client::new();
         let url = "https://gogo-stream.com/videos/bleach-episode-366";
-        let res = client.get_episode(url).await.unwrap();
+        let res = client
+            .get_episode(url)
+            .await
+            .expect("failed to get episode");
 
         dbg!(&res);
         assert!(!res.related_episodes.is_empty());
+    }
+
+    #[tokio::test]
+    async fn get_video_player() {
+        let client = Client::new();
+        let url = "https://gogo-stream.com/videos/bleach-episode-366";
+        let episode = client
+            .get_episode(url)
+            .await
+            .expect("failed to get episode");
+
+        assert!(!episode.related_episodes.is_empty());
+
+        let player = client
+            .get_video_player(episode.video_player_url.as_str())
+            .await
+            .expect("failed to get player");
+
+        dbg!(&player);
+
+        let video_data = client
+            .get_video_player_video_data(&player)
+            .await
+            .expect("failed to get video data");
+        dbg!(&video_data);
     }
 }
