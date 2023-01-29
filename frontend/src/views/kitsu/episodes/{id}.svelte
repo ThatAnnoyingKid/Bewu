@@ -22,7 +22,7 @@
     <video
       controls
       src="https://www.w3schools.com/tags/movie.mp4"
-      poster="https://www.bearmageddonnews.com/wp-content/uploads/2016/10/gatlingbear-700x445.jpg"
+      poster="{episodeData.thumbnail_original}"
       width="1920"
       height="1080"
     />
