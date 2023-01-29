@@ -58,6 +58,15 @@ impl Client {
         let url = format!("https://kitsu.io/api/edge/anime/{anime_id}/episodes");
         Ok(self.client.get_json_document(&url).await?)
     }
+
+    /// Get an episode
+    pub async fn get_episode(
+        &self,
+        episode_id: NonZeroU64,
+    ) -> Result<JsonDocument<ResourceObject<Episode>>, Error> {
+        let url = format!("https://kitsu.io/api/edge/episodes/{episode_id}");
+        Ok(self.client.get_json_document(&url).await?)
+    }
 }
 
 #[cfg(test)]
@@ -137,5 +146,14 @@ mod tests {
             .await
             .expect("failed to get anime episodes");
         dbg!(&episodes);
+
+        // First id determined experimentally
+        let episode_id = NonZeroU64::new(27).unwrap();
+        let episode = client
+            .get_episode(episode_id)
+            .await
+            .expect("failed to get episode");
+
+        dbg!(&episode);
     }
 }
