@@ -36,7 +36,17 @@ license-files = [
 [bans]
 multiple-versions = "warn"
 highlight = "all"
-skip = []
+skip = [
+    { name = "rand_chacha", version = "0.2.2" },
+    { name = "rand", version = "0.7.3" },
+    { name = "rand_core", version = "0.5.1" },
+    { name = "phf_shared", version = "0.8.0" },
+    { name = "phf_generator", version = "0.8.0" },
+    { name = "phf_codegen", version = "0.8.0" },
+    { name = "phf", version = "0.8.0" },
+    { name = "itoa", version = "0.4.8" },
+    { name = "getrandom", version = "0.1.16" },
+]
 deny = []
 
 [sources]
