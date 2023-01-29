@@ -12,21 +12,16 @@ use url::Url;
 type Aes256CbcEnc = cbc::Encryptor<aes::Aes256>;
 type Aes256CbcDec = cbc::Decryptor<aes::Aes256>;
 
-static LIST_SERVER_MORE_SELECTOR: Lazy<Selector> = Lazy::new(|| {
-    Selector::parse("#list-server-more .linkserver[data-status=\"1\"]")
-        .expect("invalid list server more selector")
-});
-static CRYPTO_DATA_VALUE_SELECTOR: Lazy<Selector> = Lazy::new(|| {
-    Selector::parse("script[data-name=\"episode\"]").expect("invalid crypto data value selector")
-});
-static REQUEST_KEY_SELECTOR: Lazy<Selector> = Lazy::new(|| {
-    Selector::parse("body[class^='container-']").expect("invalid REQUEST_KEY_SELECTOR")
-});
+static LIST_SERVER_MORE_SELECTOR: Lazy<Selector> =
+    Lazy::new(|| Selector::parse("#list-server-more .linkserver[data-status=\"1\"]").unwrap());
+static CRYPTO_DATA_VALUE_SELECTOR: Lazy<Selector> =
+    Lazy::new(|| Selector::parse("script[data-name=\"episode\"]").unwrap());
+static REQUEST_KEY_SELECTOR: Lazy<Selector> =
+    Lazy::new(|| Selector::parse("body[class^='container-']").unwrap());
 static REQUEST_IV_SELECTOR: Lazy<Selector> =
-    Lazy::new(|| Selector::parse("div[class*='container-']").expect("invalid REQUEST_IV_SELECTOR"));
-static RESPONSE_KEY_SELECTOR: Lazy<Selector> = Lazy::new(|| {
-    Selector::parse("div[class*='videocontent-']").expect("invalid RESPONSE_KEY_SELECTOR")
-});
+    Lazy::new(|| Selector::parse("div[class*='container-']").unwrap());
+static RESPONSE_KEY_SELECTOR: Lazy<Selector> =
+    Lazy::new(|| Selector::parse("div[class*='videocontent-']").unwrap());
 
 /// Error that may occur while parsing a [`VideoPlayer`]
 #[derive(thiserror::Error, Debug)]
@@ -233,6 +228,9 @@ impl VideoPlayer {
             .split_once('&')
             .ok_or(GenerateVideoDataUrlError::MissingVideoId)?;
 
+        // TODO: The first url is usually the correct one,
+        // but I'm not sure if that is always true.
+        // Check here first if the generated url has the wrong host.
         let host = self
             .sources
             .first()
@@ -240,6 +238,11 @@ impl VideoPlayer {
             .host_str()
             .ok_or(GenerateVideoDataUrlError::MissingUrlHost)?;
         let encoded_id = self.encode_id(id)?;
+
+        // TODO: Ideally we would use a http::Uri here.
+        // However, that type is extremly handicapped and almost unsuable.
+        // Revist if that type ever provides a sane way to dynamically specify path and query parameters,
+        // in a way that handles percent-encoding.
         let url = format!("https://{host}/encrypt-ajax.php?id={encoded_id}&{remaining_crypto_data_value}&alias={id}");
 
         Ok(url)
@@ -348,7 +351,7 @@ impl Source {
 }
 
 impl VideoData {
-    /// Get the best source
+    /// Get the best source.
     pub fn get_best_source(&self) -> Option<&Source> {
         let mut source_1080_p = None;
         let mut source_720_p = None;
