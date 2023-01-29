@@ -88,4 +88,14 @@ mod test {
         dbg!(&res);
         assert!(!res.entries.is_empty());
     }
+    
+    #[tokio::test]
+    async fn get_episode() {
+        let client = Client::new();
+        let url = "https://gogo-stream.com/videos/bleach-episode-366";
+        let res = client.get_episode(url).await.unwrap();
+
+        dbg!(&res);
+        assert!(!res.related_episodes.is_empty());
+    }
 }
