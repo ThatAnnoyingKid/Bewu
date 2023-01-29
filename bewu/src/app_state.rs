@@ -254,7 +254,7 @@ impl AppState {
             .thumbnail
             .map(|thumbnail| thumbnail.original.into());
 
-        Ok(AnimeEpisode {
+        let episode = AnimeEpisode {
             anime_id,
             episode_id,
 
@@ -263,7 +263,13 @@ impl AppState {
             length_minutes,
 
             thumbnail_original,
-        })
+        };
+
+        self.database
+            .update_kitsu_episodes(Arc::from(std::slice::from_ref(&episode)))
+            .await?;
+
+        Ok(episode)
     }
 
     /// Shutdown the app state.
