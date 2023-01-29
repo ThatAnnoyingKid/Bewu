@@ -36,9 +36,7 @@ license-files = [
 [bans]
 multiple-versions = "warn"
 highlight = "all"
-skip = [
-    { name = "base64", version = "0.13.1" },
-]
+skip = []
 deny = []
 
 [sources]
