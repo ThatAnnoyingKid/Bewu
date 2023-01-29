@@ -19,9 +19,10 @@ pub enum Error {
 }
 
 /// The client
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Client {
-    client: json_api::Client,
+    /// The inner json api client
+    pub client: json_api::Client,
 }
 
 impl Client {
