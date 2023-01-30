@@ -1,6 +1,6 @@
 <script>
   import Api from "@/Api.js";
-  import {link} from 'svelte-spa-router';
+  import { link } from "svelte-spa-router";
 
   export let params = {};
 
@@ -48,27 +48,27 @@
       <ol>
         {#each episodes as episode}
           <li>
-              <!-- make it go to episode page thingy -->
-              <!-- 
+            <!-- make it go to episode page thingy -->
+            <!-- 
               Thumbnail data is not returned from the api.
               While most are 400 x 300, some are not.
               However, 400 x 300 is a good guess while loading, 
               and we can fix it up with css if we are wrong.
             -->
-              <img
-                src={episode.thumbnail_original || animePosterLarge}
-                alt="thumbnail for {episode.title || animeTitle}"
-                width="400"
-                height="300"
-              />
-              <div class="episode-info-container">
-                <h3>{episode.title || animeTitle}</h3>
-              </div>
-              <div class = "episode-button-container">
-              <a href = "/kitsu/episodes/{episode.id}" use:link>
+            <img
+              src={episode.thumbnail_original || animePosterLarge}
+              alt="thumbnail for {episode.title || animeTitle}"
+              width="400"
+              height="300"
+            />
+            <div class="episode-info-container">
+              <h3>{episode.title || animeTitle}</h3>
+            </div>
+            <div class="episode-button-container">
+              <a href="/kitsu/episodes/{episode.id}" use:link>
                 <button>Sub</button>
               </a>
-              </div>
+            </div>
           </li>
         {/each}
       </ol>
@@ -139,11 +139,10 @@
     margin: 0;
     padding: 0;
   }
-  
+
   .episode-button-container {
-    
   }
-  
+
   .episode-button-container a {
     margin: auto;
   }

@@ -10,6 +10,13 @@ use std::num::NonZeroU64;
 use std::path::Path;
 use std::sync::Arc;
 use tracing::debug;
+use url::Url;
+
+#[derive(Debug)]
+pub struct VidstreamingEpisode {
+    /// The url of the best source
+    pub best_source: Url,
+}
 
 pub struct AppState {
     lock_file: AsyncLockFile,
@@ -133,7 +140,7 @@ impl AppState {
         }
         let anime: Arc<[Anime]> = anime.into();
 
-        self.database.update_kitsu_anime(anime.clone()).await?;
+        self.database.upsert_kitsu_anime(anime.clone()).await?;
 
         Ok(anime)
     }
@@ -160,8 +167,9 @@ impl AppState {
             poster_large,
         };
 
+        // TODO: Consider adding special call for single anime.
         self.database
-            .update_kitsu_anime(Arc::from(std::slice::from_ref(&anime)))
+            .upsert_kitsu_anime(Arc::from(std::slice::from_ref(&anime)))
             .await?;
 
         Ok(anime)
@@ -183,6 +191,7 @@ impl AppState {
             let title = attributes.canonical_title;
             let synopsis = attributes.synopsis;
             let length_minutes: Option<u32> = attributes.length;
+            let number = attributes.number;
             let thumbnail_original = attributes
                 .thumbnail
                 .map(|thumbnail| thumbnail.original.into());
@@ -194,6 +203,7 @@ impl AppState {
                 title,
                 synopsis,
                 length_minutes,
+                number,
 
                 thumbnail_original,
             });
@@ -255,6 +265,7 @@ impl AppState {
         let title = attributes.canonical_title;
         let synopsis = attributes.synopsis;
         let length_minutes: Option<u32> = attributes.length;
+        let number = attributes.number;
         let thumbnail_original = attributes
             .thumbnail
             .map(|thumbnail| thumbnail.original.into());
@@ -266,6 +277,7 @@ impl AppState {
             title,
             synopsis,
             length_minutes,
+            number,
 
             thumbnail_original,
         };
@@ -275,6 +287,53 @@ impl AppState {
             .await?;
 
         Ok(episode)
+    }
+
+    /// Get a vidstreaming episode.
+    pub async fn get_vidstreaming_episode(
+        &self,
+        id: NonZeroU64,
+    ) -> anyhow::Result<VidstreamingEpisode> {
+        let episode = self.get_kitsu_episode(id).await?;
+        let anime = self.get_kitsu_anime(episode.anime_id).await?;
+
+        // Guess vidstreaming url
+        let url = format!(
+            "https://gogohd.net/videos/{}-episode-{}",
+            anime.slug, episode.number,
+        );
+
+        let vidstreaming_episode = self.vidstreaming_client.get_episode(url.as_str()).await?;
+        let video_player = self
+            .vidstreaming_client
+            .get_video_player(vidstreaming_episode.video_player_url.as_str())
+            .await?;
+        let video_data = self
+            .vidstreaming_client
+            .get_video_player_video_data(&video_player)
+            .await?;
+
+        debug!("located {} sources", video_data.source.len());
+        for source in video_data.source.iter() {
+            debug!(
+                "found source: (url={}, label={}, kind={})",
+                source.file, source.label, source.kind
+            );
+        }
+
+        // debug!("{:#?}", video_data.source_bk);
+
+        let best_source = video_data
+            .get_best_source()
+            .context("failed to select source")?;
+        debug!(
+            "selected source: (url={}, label={}, kind={})",
+            best_source.file, best_source.label, best_source.kind
+        );
+
+        Ok(VidstreamingEpisode {
+            best_source: best_source.file.clone(),
+        })
     }
 
     /// Shutdown the app state.

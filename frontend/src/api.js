@@ -28,6 +28,13 @@ class Api {
     if (response.status != 200) throw convertToError(json);
     return json;
   }
+
+  async getVidstreamingEpisode(id) {
+    let response = await fetch(`/api/vidstreaming/${id}`);
+    let json = await response.json();
+    if (response.status != 200) throw convertToError(json);
+    return json;
+  }
 }
 
 function convertToError(json) {

@@ -10,6 +10,7 @@ use axum::Router;
 use std::num::NonZeroU64;
 use std::sync::Arc;
 use tracing::error;
+use url::Url;
 
 #[derive(Debug, serde::Serialize)]
 struct ApiError {
@@ -34,6 +35,7 @@ pub fn routes() -> Router<Arc<AppState>> {
             get(api_kitsu_anime_id_episodes),
         )
         .route("/kitsu/episodes/:id", get(api_kitsu_episodes_id))
+        .route("/vidstreaming/:id", get(api_vidstreaming_id))
 }
 
 async fn api_anime_get(State(_app_state): State<Arc<AppState>>) -> impl IntoResponse {
@@ -163,6 +165,32 @@ async fn api_kitsu_episodes_id(
             id: episode.episode_id,
             title: episode.title.as_ref().map(ToString::to_string),
             thumbnail_original: episode.thumbnail_original.as_ref().map(ToString::to_string),
+        })
+        .map_err(|error| {
+            error!("{error:?}");
+            ApiError::from_anyhow(error)
+        });
+
+    match result {
+        Ok(result) => (StatusCode::OK, Json(result)).into_response(),
+        Err(error) => (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response(),
+    }
+}
+
+#[derive(Debug, serde::Serialize)]
+struct ApiVidstreamingEpisode {
+    best_source: Url,
+}
+
+async fn api_vidstreaming_id(
+    State(app_state): State<Arc<AppState>>,
+    Path(id): Path<NonZeroU64>,
+) -> impl IntoResponse {
+    let result = app_state
+        .get_vidstreaming_episode(id)
+        .await
+        .map(|episode| ApiVidstreamingEpisode {
+            best_source: episode.best_source,
         })
         .map_err(|error| {
             error!("{error:?}");

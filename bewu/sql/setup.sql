@@ -30,6 +30,8 @@ CREATE TABLE IF NOT EXISTS kitsu_episodes (
     synopsis TEXT,
     length_minutes INTEGER,
     
+    number INTEGER NOT NULL,
+    
     thumbnail_original TEXT,
     
     FOREIGN KEY (anime_id) REFERENCES kitsu_anime (id)

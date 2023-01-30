@@ -5,24 +5,11 @@ use std::path::Path;
 use std::sync::Arc;
 use tracing::error;
 
-const SETUP_SQL: &str = include_str!("../../sql/setup.sql");
-const UPDATE_KITSU_ANIME_SQL: &str = "
-INSERT OR REPLACE INTO kitsu_anime (
-    id, 
-    slug, 
-    synopsis, 
-    title, 
-    rating,
-    poster_large
-) VALUES (
-    :id, 
-    :slug, 
-    :synopsis,
-    :title,
-    :rating,
-    :poster_large
-);
-";
+const SETUP_SQL: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/sql/setup.sql"));
+const UPSERT_KITSU_ANIME_SQL: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/sql/upsert_kitsu_anime.sql"
+));
 const UPDATE_KITSU_EPISODES_SQL: &str = "
 INSERT OR REPLACE INTO kitsu_episodes (
     episode_id,
@@ -30,6 +17,7 @@ INSERT OR REPLACE INTO kitsu_episodes (
     title,
     synopsis,
     length_minutes,
+    number,
     thumbnail_original
 ) VALUES (
    :episode_id,
@@ -37,6 +25,7 @@ INSERT OR REPLACE INTO kitsu_episodes (
    :title,
    :synopsis,
    :length_minutes,
+   :number,
    :thumbnail_original
 );
 ";
@@ -60,6 +49,7 @@ pub struct AnimeEpisode {
     pub title: Option<String>,
     pub synopsis: Option<String>,
     pub length_minutes: Option<u32>,
+    pub number: u32,
 
     pub thumbnail_original: Option<String>,
 }
@@ -85,13 +75,13 @@ impl Database {
         Ok(Self { database })
     }
 
-    /// Update kitsu anime
-    pub async fn update_kitsu_anime(&self, anime: Arc<[Anime]>) -> anyhow::Result<()> {
+    /// Upsert kitsu anime
+    pub async fn upsert_kitsu_anime(&self, anime: Arc<[Anime]>) -> anyhow::Result<()> {
         self.database
             .access_db(move |database| {
                 let transaction = database.transaction()?;
                 {
-                    let mut statement = transaction.prepare_cached(UPDATE_KITSU_ANIME_SQL)?;
+                    let mut statement = transaction.prepare_cached(UPSERT_KITSU_ANIME_SQL)?;
                     for anime in anime.iter() {
                         statement.execute(named_params! {
                             ":id": anime.id.get(),
@@ -125,6 +115,7 @@ impl Database {
                             ":title": episode.title,
                             ":synopsis": episode.synopsis,
                             ":length_minutes": episode.length_minutes,
+                            ":number": episode.number,
                             ":thumbnail_original": episode.thumbnail_original,
                         })?;
                     }
