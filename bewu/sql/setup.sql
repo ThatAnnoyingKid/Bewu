@@ -19,7 +19,9 @@ CREATE TABLE IF NOT EXISTS kitsu_anime (
     title TEXT NOT NULL,
     rating TEXT,
     
-    poster_large TEXT NOT NULL
+    poster_large TEXT NOT NULL,
+    
+    last_update INTEGER NOT NULL
 ) STRICT;
 
 CREATE TABLE IF NOT EXISTS kitsu_episodes (

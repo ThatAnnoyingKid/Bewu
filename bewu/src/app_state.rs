@@ -1,14 +1,15 @@
 mod database;
 
-pub use self::database::KitsuAnime;
 pub use self::database::AnimeEpisode;
 pub use self::database::Database;
+pub use self::database::KitsuAnime;
 use crate::util::AsyncLockFile;
 use anyhow::ensure;
 use anyhow::Context;
 use std::num::NonZeroU64;
 use std::path::Path;
 use std::sync::Arc;
+use std::time::SystemTime;
 use tracing::debug;
 use url::Url;
 
@@ -119,6 +120,7 @@ impl AppState {
         let document_data = document.data.context("missing document data")?;
 
         let mut anime = Vec::with_capacity(document_data.len());
+        let last_update = SystemTime::UNIX_EPOCH.elapsed()?.as_secs();
         for item in document_data {
             let attributes = item.attributes.context("missing attributes")?;
 
@@ -136,6 +138,7 @@ impl AppState {
                 title,
                 rating,
                 poster_large,
+                last_update,
             });
         }
         let anime: Arc<[KitsuAnime]> = anime.into();
@@ -149,6 +152,8 @@ impl AppState {
     pub async fn get_kitsu_anime(&self, id: NonZeroU64) -> anyhow::Result<KitsuAnime> {
         let document = self.kitsu_client.get_anime(id).await?;
         let document_data = document.data.context("missing document data")?;
+
+        let last_update = SystemTime::UNIX_EPOCH.elapsed()?.as_secs();
 
         let attributes = document_data.attributes.context("missing attributes")?;
         let id: NonZeroU64 = document_data.id.as_deref().context("missing id")?.parse()?;
@@ -165,6 +170,7 @@ impl AppState {
             title,
             rating,
             poster_large,
+            last_update,
         };
 
         // TODO: Consider adding special call for single anime.

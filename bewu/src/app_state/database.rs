@@ -1,3 +1,6 @@
+mod model;
+
+pub use self::model::KitsuAnime;
 use anyhow::Context;
 use async_rusqlite::rusqlite::named_params;
 use std::num::NonZeroU64;
@@ -31,17 +34,6 @@ INSERT OR REPLACE INTO kitsu_episodes (
 ";
 
 #[derive(Debug, Clone)]
-pub struct KitsuAnime {
-    pub id: NonZeroU64,
-    pub slug: String,
-    pub synopsis: Option<String>,
-    pub title: String,
-    pub rating: Option<String>,
-
-    pub poster_large: String,
-}
-
-#[derive(Debug, Clone)]
 pub struct AnimeEpisode {
     pub episode_id: NonZeroU64,
     pub anime_id: NonZeroU64,
@@ -60,6 +52,7 @@ pub struct Database {
 }
 
 impl Database {
+    /// Create a new database at the given path, or open it if it already exists.
     pub async fn new<P>(path: P) -> anyhow::Result<Self>
     where
         P: AsRef<Path>,
@@ -75,7 +68,7 @@ impl Database {
         Ok(Self { database })
     }
 
-    /// Upsert kitsu anime
+    /// Upsert kitsu anime.
     pub async fn upsert_kitsu_anime(&self, anime: Arc<[KitsuAnime]>) -> anyhow::Result<()> {
         self.database
             .access_db(move |database| {
@@ -90,6 +83,7 @@ impl Database {
                             ":title": anime.title,
                             ":rating": anime.rating,
                             ":poster_large": anime.poster_large,
+                            ":last_update": anime.last_update,
                         })?;
                     }
                 }

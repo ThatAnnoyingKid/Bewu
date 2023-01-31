@@ -4,12 +4,14 @@ INSERT OR REPLACE INTO kitsu_anime (
     synopsis, 
     title, 
     rating,
-    poster_large
+    poster_large,
+    last_update
 ) VALUES (
     :id, 
     :slug, 
     :synopsis,
     :title,
     :rating,
-    :poster_large
+    :poster_large,
+    :last_update
 );
