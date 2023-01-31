@@ -48,7 +48,6 @@
       <ol>
         {#each episodes as episode}
           <li>
-            <!-- make it go to episode page thingy -->
             <!-- 
               Thumbnail data is not returned from the api.
               While most are 400 x 300, some are not.

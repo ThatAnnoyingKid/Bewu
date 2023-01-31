@@ -17,6 +17,7 @@ pub use self::video_player::DecryptVideoDataError;
 pub use self::video_player::EncryptedVideoData;
 pub use self::video_player::FromHtmlError as InvalidVideoPlayerError;
 pub use self::video_player::GenerateVideoDataUrlError;
+pub use self::video_player::Source as VideoDataSource;
 pub use self::video_player::VideoData;
 pub use self::video_player::VideoPlayer;
 use once_cell::sync::Lazy;

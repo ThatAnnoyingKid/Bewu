@@ -23,7 +23,8 @@ impl Client {
     /// Make a new client
     pub fn new() -> Self {
         let client = reqwest::Client::builder()
-            .user_agent(USER_AGENT_VALUE).build()
+            .user_agent(USER_AGENT_VALUE)
+            .build()
             .expect("failed to build client");
         Self { client }
     }

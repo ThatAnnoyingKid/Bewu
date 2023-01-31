@@ -303,6 +303,8 @@ impl AppState {
             anime.slug, episode.number,
         );
 
+        debug!("using vidstreaming url \"{}\"", url);
+
         let vidstreaming_episode = self.vidstreaming_client.get_episode(url.as_str()).await?;
         let video_player = self
             .vidstreaming_client
