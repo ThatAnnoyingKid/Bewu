@@ -9,6 +9,9 @@ use scraper::Html;
 use std::num::NonZeroU32;
 use url::Url;
 
+pub(crate) const USER_AGENT_VALUE: &str =
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5015.0 Safari/537.36";
+
 /// The vidstreaming client
 #[derive(Debug, Clone)]
 pub struct Client {
@@ -19,9 +22,10 @@ pub struct Client {
 impl Client {
     /// Make a new client
     pub fn new() -> Self {
-        Self {
-            client: reqwest::Client::new(),
-        }
+        let client = reqwest::Client::builder()
+            .user_agent(USER_AGENT_VALUE).build()
+            .expect("failed to build client");
+        Self { client }
     }
 
     /// Get the url as html, then transform it
