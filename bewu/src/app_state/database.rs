@@ -31,7 +31,7 @@ INSERT OR REPLACE INTO kitsu_episodes (
 ";
 
 #[derive(Debug, Clone)]
-pub struct Anime {
+pub struct KitsuAnime {
     pub id: NonZeroU64,
     pub slug: String,
     pub synopsis: Option<String>,
@@ -76,7 +76,7 @@ impl Database {
     }
 
     /// Upsert kitsu anime
-    pub async fn upsert_kitsu_anime(&self, anime: Arc<[Anime]>) -> anyhow::Result<()> {
+    pub async fn upsert_kitsu_anime(&self, anime: Arc<[KitsuAnime]>) -> anyhow::Result<()> {
         self.database
             .access_db(move |database| {
                 let transaction = database.transaction()?;

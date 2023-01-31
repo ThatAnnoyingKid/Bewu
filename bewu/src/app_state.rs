@@ -1,6 +1,6 @@
 mod database;
 
-pub use self::database::Anime;
+pub use self::database::KitsuAnime;
 pub use self::database::AnimeEpisode;
 pub use self::database::Database;
 use crate::util::AsyncLockFile;
@@ -114,7 +114,7 @@ impl AppState {
     /// Run a search on kitsu.
     ///
     /// All returned data is cached.
-    pub async fn search_kitsu(&self, query: &str) -> anyhow::Result<Arc<[Anime]>> {
+    pub async fn search_kitsu(&self, query: &str) -> anyhow::Result<Arc<[KitsuAnime]>> {
         let document = self.kitsu_client.search(query).await?;
         let document_data = document.data.context("missing document data")?;
 
@@ -129,7 +129,7 @@ impl AppState {
             let rating = attributes.average_rating;
             let poster_large = attributes.poster_image.large.into();
 
-            anime.push(Anime {
+            anime.push(KitsuAnime {
                 id,
                 slug,
                 synopsis,
@@ -138,7 +138,7 @@ impl AppState {
                 poster_large,
             });
         }
-        let anime: Arc<[Anime]> = anime.into();
+        let anime: Arc<[KitsuAnime]> = anime.into();
 
         self.database.upsert_kitsu_anime(anime.clone()).await?;
 
@@ -146,7 +146,7 @@ impl AppState {
     }
 
     /// Get the kitsu anime for the given id.
-    pub async fn get_kitsu_anime(&self, id: NonZeroU64) -> anyhow::Result<Anime> {
+    pub async fn get_kitsu_anime(&self, id: NonZeroU64) -> anyhow::Result<KitsuAnime> {
         let document = self.kitsu_client.get_anime(id).await?;
         let document_data = document.data.context("missing document data")?;
 
@@ -158,7 +158,7 @@ impl AppState {
         let rating = attributes.average_rating;
         let poster_large = attributes.poster_image.large.into();
 
-        let anime = Anime {
+        let anime = KitsuAnime {
             id,
             slug,
             synopsis,
