@@ -2,7 +2,10 @@ class Api {
   constructor() {}
 
   async searchKitsu(text) {
-    let response = await fetch(`/api/kitsu/anime?text=${text}`);
+    let params = new URLSearchParams();
+    if (text !== null && text !== undefined) params.set("text", text);
+
+    let response = await fetch(`/api/kitsu/anime?${params}`);
     let json = await response.json();
     if (response.status != 200) throw convertToError(json);
     return json;

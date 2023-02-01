@@ -2,21 +2,29 @@
   import { link, location, querystring, push } from "svelte-spa-router";
   import Api from "@/api.js";
 
-  let searchParams = new URLSearchParams($querystring);
-  let searchText = searchParams.get("text");
+  let searchParams;
+  let searchText;
+  $: {
+    searchParams = new URLSearchParams($querystring);
+    searchText = searchParams.get("text") || "";
+  }
 
-  let searchResultsPromise =
-    searchText === null ? null : Api.searchKitsu(searchText);
+  let inputValue = "";
+  $: {
+    inputValue = searchText;
+  }
 
-  let inputValue = searchText || "";
   function handleKeyDown(event) {
     if (event.keyCode == 13) {
       searchParams.set("text", inputValue);
-      push($location + "?" + searchParams.toString());
-      searchText = inputValue;
-      searchResultsPromise = Api.searchKitsu(searchText);
+
+      let newLocation = $location + "?" + searchParams;
+      push(newLocation);
     }
   }
+
+  $: searchResultsPromise =
+    searchText === "" ? null : Api.searchKitsu(searchText);
 </script>
 
 <div class="container">

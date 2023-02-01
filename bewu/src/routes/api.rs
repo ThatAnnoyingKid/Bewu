@@ -1,4 +1,5 @@
 use crate::AppState;
+use anyhow::Context;
 use axum::extract::Path;
 use axum::extract::Query;
 use axum::extract::State;
@@ -44,7 +45,7 @@ async fn api_anime_get(State(_app_state): State<Arc<AppState>>) -> impl IntoResp
 
 #[derive(Debug, serde::Deserialize)]
 struct KitsuSearchParams {
-    text: String,
+    text: Option<String>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -70,26 +71,28 @@ async fn api_kitsu_anime(
     State(app_state): State<Arc<AppState>>,
     Query(params): Query<KitsuSearchParams>,
 ) -> impl IntoResponse {
-    let result = app_state
-        .search_kitsu(params.text.as_str())
-        .await
-        .map(|anime| {
-            anime
-                .iter()
-                .map(|anime| ApiKitsuAnime {
-                    id: anime.id,
-                    synopsis: anime.synopsis.clone(),
-                    title: anime.title.clone(),
-                    rating: anime.rating.clone(),
+    let result = async move {
+        let text = params.text.context("missing `text` query param")?;
+        app_state.search_kitsu(&text).await
+    }
+    .await
+    .map(|anime| {
+        anime
+            .iter()
+            .map(|anime| ApiKitsuAnime {
+                id: anime.id,
+                synopsis: anime.synopsis.clone(),
+                title: anime.title.clone(),
+                rating: anime.rating.clone(),
 
-                    poster_large: anime.poster_large.clone(),
-                })
-                .collect::<Vec<_>>()
-        })
-        .map_err(|error| {
-            error!("{error:?}");
-            ApiError::from_anyhow(error)
-        });
+                poster_large: anime.poster_large.clone(),
+            })
+            .collect::<Vec<_>>()
+    })
+    .map_err(|error| {
+        error!("{error:?}");
+        ApiError::from_anyhow(error)
+    });
 
     match result {
         Ok(result) => (StatusCode::OK, Json(result)).into_response(),
