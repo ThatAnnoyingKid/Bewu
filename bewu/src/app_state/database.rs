@@ -46,7 +46,7 @@ pub struct AnimeEpisode {
     pub thumbnail_original: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Database {
     pub(crate) database: async_rusqlite::Database,
 }
@@ -122,24 +122,28 @@ impl Database {
         Ok(())
     }
 
-    /// Shut down the database.
-    ///
-    /// Should only be called once.
-    pub async fn shutdown(&self) -> anyhow::Result<()> {
-        let optmize_result = self
-            .database
+    /// Optimize the database.
+    pub async fn optimize(&self) -> anyhow::Result<()> {
+        self.database
             .access_db(|database| {
                 database.execute("PRAGMA OPTIMIZE;", [])?;
                 database.execute("VACUUM;", [])
             })
             .await
-            .context("failed to access database")
-            .and_then(|v| v.context("failed to execute shutdown commands"))
-            .map(|_| ());
+            .context("failed to access database")?
+            .context("failed to execute shutdown commands")?;
 
-        if let Err(error) = optmize_result.as_ref() {
+        Ok(())
+    }
+
+    /// Shut down the database.
+    ///
+    /// Should only be called once.
+    pub async fn shutdown(&self) -> anyhow::Result<()> {
+        let optmize_result = self.optimize().await.map_err(|error| {
             error!("{error}");
-        }
+            error
+        });
 
         self.database
             .close()

@@ -1,8 +1,10 @@
 mod database;
+mod kitsu;
 
 pub use self::database::AnimeEpisode;
 pub use self::database::Database;
 pub use self::database::KitsuAnime;
+use self::kitsu::KitsuTask;
 use crate::util::AsyncLockFile;
 use anyhow::ensure;
 use anyhow::Context;
@@ -19,11 +21,26 @@ pub struct VidstreamingEpisode {
     pub best_source: Url,
 }
 
+/// The app state
+///
+///
+/// # Task Structure
+/// ```
+/// +----------+      +-----------+
+/// | Database | ---> | KitsuTask |
+/// +----------+      +-----------+
+///
+/// +---------------+
+/// | AsyncLockFile |
+/// +---------------+
+///
+/// ```
 pub struct AppState {
     lock_file: AsyncLockFile,
     database: Database,
+    kitsu_task: KitsuTask,
 
-    kitsu_client: kitsu::Client,
+    kitsu_client: ::kitsu::Client,
     vidstreaming_client: vidstreaming::Client,
 }
 
@@ -100,12 +117,15 @@ impl AppState {
             .await
             .context("failed to open database")?;
 
-        let kitsu_client = kitsu::Client::new();
+        let kitsu_client = ::kitsu::Client::new();
         let vidstreaming_client = vidstreaming::Client::new();
+
+        let kitsu_task = KitsuTask::new(database.clone());
 
         Ok(Self {
             lock_file,
             database,
+            kitsu_task,
 
             kitsu_client,
             vidstreaming_client,
@@ -113,38 +133,8 @@ impl AppState {
     }
 
     /// Run a search on kitsu.
-    ///
-    /// All returned data is cached.
     pub async fn search_kitsu(&self, query: &str) -> anyhow::Result<Arc<[KitsuAnime]>> {
-        let document = self.kitsu_client.search(query).await?;
-        let document_data = document.data.context("missing document data")?;
-
-        let mut anime = Vec::with_capacity(document_data.len());
-        let last_update = SystemTime::UNIX_EPOCH.elapsed()?.as_secs();
-        for item in document_data {
-            let attributes = item.attributes.context("missing attributes")?;
-
-            let id: NonZeroU64 = item.id.as_deref().context("missing id")?.parse()?;
-            let slug = attributes.slug;
-            let synopsis = attributes.synopsis;
-            let title = attributes.canonical_title;
-            let rating = attributes.average_rating;
-            let poster_large = attributes.poster_image.large.into();
-
-            anime.push(KitsuAnime {
-                id,
-                slug,
-                synopsis,
-                title,
-                rating,
-                poster_large,
-                last_update,
-            });
-        }
-        let anime: Arc<[KitsuAnime]> = anime.into();
-
-        self.database.upsert_kitsu_anime(anime.clone()).await?;
-
+        let anime = self.kitsu_task.search(query).await?;
         Ok(anime)
     }
 
@@ -348,6 +338,13 @@ impl AppState {
     ///
     /// This should only be called once.
     pub async fn shutdown(&self) -> anyhow::Result<()> {
+        debug!("shutting down kitsu task");
+        let kitsu_shutdown_result = self
+            .kitsu_task
+            .shutdown()
+            .await
+            .context("failed to shutdown kitsu task");
+
         debug!("shutting down database");
         let database_shutdown_result = self
             .database
@@ -366,6 +363,7 @@ impl AppState {
             .context("failed to shutdown the lock file thread");
 
         database_shutdown_result
+            .or(kitsu_shutdown_result)
             .or(lock_file_unlock_result)
             .or(lock_file_shutdown_result)
     }
