@@ -1,9 +1,9 @@
 mod database;
 mod kitsu;
 
-pub use self::database::AnimeEpisode;
 pub use self::database::Database;
 pub use self::database::KitsuAnime;
+pub use self::database::KitsuAnimeEpisode;
 use self::kitsu::KitsuTask;
 use crate::util::AsyncLockFile;
 use anyhow::ensure;
@@ -11,6 +11,7 @@ use anyhow::Context;
 use std::num::NonZeroU64;
 use std::path::Path;
 use std::sync::Arc;
+use std::time::SystemTime;
 use tracing::debug;
 use url::Url;
 
@@ -189,11 +190,12 @@ impl AppState {
     pub async fn get_kitsu_episodes(
         &self,
         anime_id: NonZeroU64,
-    ) -> anyhow::Result<Arc<[AnimeEpisode]>> {
+    ) -> anyhow::Result<Arc<[KitsuAnimeEpisode]>> {
         let document = self.kitsu_client.get_anime_episodes(anime_id).await?;
         let document_data = document.data.context("missing document data")?;
 
         let mut episodes = Vec::with_capacity(document_data.len());
+        let last_update = SystemTime::UNIX_EPOCH.elapsed()?.as_secs();
         for item in document_data {
             let attributes = item.attributes.context("missing attributes")?;
             let episode_id: NonZeroU64 = item.id.as_deref().context("missing id")?.parse()?;
@@ -206,7 +208,7 @@ impl AppState {
                 .thumbnail
                 .map(|thumbnail| thumbnail.original.into());
 
-            episodes.push(AnimeEpisode {
+            episodes.push(KitsuAnimeEpisode {
                 anime_id,
                 episode_id,
 
@@ -216,19 +218,23 @@ impl AppState {
                 number,
 
                 thumbnail_original,
+                last_update,
             });
         }
-        let episodes: Arc<[AnimeEpisode]> = episodes.into();
+        let episodes: Arc<[KitsuAnimeEpisode]> = episodes.into();
 
         self.database
-            .update_kitsu_episodes(episodes.clone())
+            .upsert_kitsu_episodes(episodes.clone())
             .await?;
 
         Ok(episodes)
     }
 
-    /// Get a kitsu episode by id
-    pub async fn get_kitsu_episode(&self, id: NonZeroU64) -> anyhow::Result<AnimeEpisode> {
+    /// Get a kitsu episode by id.
+    pub async fn get_kitsu_episode(
+        &self,
+        id: NonZeroU64,
+    ) -> anyhow::Result<Arc<KitsuAnimeEpisode>> {
         let document_handle = {
             let client = self.kitsu_client.clone();
             tokio::spawn(async move { client.get_episode(id).await })
@@ -269,6 +275,8 @@ impl AppState {
         let document = document_handle.await??;
         let document_data = document.data.context("missing document data")?;
 
+        let last_update = SystemTime::UNIX_EPOCH.elapsed()?.as_secs();
+
         let attributes = document_data.attributes.context("missing attributes")?;
         let episode_id: NonZeroU64 = document_data.id.as_deref().context("missing id")?.parse()?;
 
@@ -280,7 +288,7 @@ impl AppState {
             .thumbnail
             .map(|thumbnail| thumbnail.original.into());
 
-        let episode = AnimeEpisode {
+        let episode = Arc::new(KitsuAnimeEpisode {
             anime_id,
             episode_id,
 
@@ -290,11 +298,10 @@ impl AppState {
             number,
 
             thumbnail_original,
-        };
+            last_update,
+        });
 
-        self.database
-            .update_kitsu_episodes(Arc::from(std::slice::from_ref(&episode)))
-            .await?;
+        self.database.upsert_kitsu_episodes(episode.clone()).await?;
 
         Ok(episode)
     }

@@ -36,5 +36,7 @@ CREATE TABLE IF NOT EXISTS kitsu_episodes (
     
     thumbnail_original TEXT,
     
+    last_update INTEGER NOT NULL,
+    
     FOREIGN KEY (anime_id) REFERENCES kitsu_anime (id)
 ) STRICT;

@@ -1,9 +1,9 @@
 mod model;
 
 pub use self::model::KitsuAnime;
+pub use self::model::KitsuAnimeEpisode;
 use anyhow::Context;
 use async_rusqlite::rusqlite::named_params;
-use std::num::NonZeroU64;
 use std::path::Path;
 use std::sync::Arc;
 use tracing::error;
@@ -41,38 +41,10 @@ const UPSERT_KITSU_ANIME_SQL: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/sql/upsert_kitsu_anime.sql"
 ));
-const UPDATE_KITSU_EPISODES_SQL: &str = "
-INSERT OR REPLACE INTO kitsu_episodes (
-    episode_id,
-    anime_id,
-    title,
-    synopsis,
-    length_minutes,
-    number,
-    thumbnail_original
-) VALUES (
-   :episode_id,
-   :anime_id,
-   :title,
-   :synopsis,
-   :length_minutes,
-   :number,
-   :thumbnail_original
-);
-";
-
-#[derive(Debug, Clone)]
-pub struct AnimeEpisode {
-    pub episode_id: NonZeroU64,
-    pub anime_id: NonZeroU64,
-
-    pub title: Option<String>,
-    pub synopsis: Option<String>,
-    pub length_minutes: Option<u32>,
-    pub number: u32,
-
-    pub thumbnail_original: Option<String>,
-}
+const UPDATE_KITSU_EPISODE_SQL: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/sql/upsert_kitsu_episode.sql"
+));
 
 #[derive(Debug, Clone)]
 pub struct Database {
@@ -127,13 +99,17 @@ impl Database {
         Ok(())
     }
 
-    /// Update kitsu episodes
-    pub async fn update_kitsu_episodes(&self, episodes: Arc<[AnimeEpisode]>) -> anyhow::Result<()> {
+    /// Upsert kitsu episodes
+    pub async fn upsert_kitsu_episodes<E>(&self, episodes: E) -> anyhow::Result<()>
+    where
+        E: AsSlice<KitsuAnimeEpisode> + Send + 'static,
+    {
         self.database
             .access_db(move |database| {
                 let transaction = database.transaction()?;
                 {
-                    let mut statement = transaction.prepare_cached(UPDATE_KITSU_EPISODES_SQL)?;
+                    let mut statement = transaction.prepare_cached(UPDATE_KITSU_EPISODE_SQL)?;
+                    let episodes = episodes.as_slice();
                     for episode in episodes.iter() {
                         statement.execute(named_params! {
                             ":episode_id": episode.episode_id.get(),
@@ -143,6 +119,7 @@ impl Database {
                             ":length_minutes": episode.length_minutes,
                             ":number": episode.number,
                             ":thumbnail_original": episode.thumbnail_original,
+                            ":last_update": episode.last_update,
                         })?;
                     }
                 }
