@@ -104,6 +104,48 @@ impl AppState {
             }
         }
 
+        let vidstreaming_directory = data_directory.join("vidstreaming");
+        match tokio::fs::create_dir(&vidstreaming_directory).await {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(e) => {
+                return Err(e).with_context(|| {
+                    format!(
+                        "failed to create vidstreaming directory \"{}\"",
+                        vidstreaming_directory.display()
+                    )
+                });
+            }
+        }
+
+        let vidstreaming_sub_directory = vidstreaming_directory.join("sub");
+        match tokio::fs::create_dir(&vidstreaming_sub_directory).await {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(e) => {
+                return Err(e).with_context(|| {
+                    format!(
+                        "failed to create vidstreaming sub directory \"{}\"",
+                        vidstreaming_sub_directory.display()
+                    )
+                });
+            }
+        }
+
+        let vidstreaming_dub_directory = vidstreaming_directory.join("dub");
+        match tokio::fs::create_dir(&vidstreaming_dub_directory).await {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(e) => {
+                return Err(e).with_context(|| {
+                    format!(
+                        "failed to create vidstreaming dub directory \"{}\"",
+                        vidstreaming_sub_directory.display()
+                    )
+                });
+            }
+        }
+
         let lock_file_path = data_directory.join("bewu.lock");
         let lock_file = AsyncLockFile::create(lock_file_path).await?;
         lock_file

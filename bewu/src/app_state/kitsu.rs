@@ -148,7 +148,7 @@ async fn kitsu_task_impl(
                             tx,
                         ));
                     }
-                    Some(KitsuTaskMessage::GetAnime{ id, tx }) => {
+                    Some(KitsuTaskMessage::GetAnime { id, tx }) => {
                         let client = client.clone();
                         let get_anime_request_map = get_anime_request_map.clone();
                         let database = database.clone();

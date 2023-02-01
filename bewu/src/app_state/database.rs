@@ -177,16 +177,20 @@ impl Database {
             error
         });
 
-        self.database
+        // If we failed to close,
+        // the database has already exited,
+        // so it is safe to join.
+        let close_result = self
+            .database
             .close()
             .await
-            .context("failed to send close command")?;
+            .context("failed to send close command");
         let join_result = self
             .database
             .join()
             .await
             .context("failed to join database thread");
 
-        join_result.or(optmize_result)
+        join_result.or(close_result).or(optmize_result)
     }
 }
