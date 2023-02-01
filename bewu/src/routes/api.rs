@@ -128,7 +128,7 @@ async fn api_kitsu_anime_id_episodes(
     Path(id): Path<NonZeroU64>,
 ) -> impl IntoResponse {
     let result = app_state
-        .get_kitsu_episodes(id)
+        .get_kitsu_anime_episodes(id)
         .await
         .map(|episodes| {
             episodes

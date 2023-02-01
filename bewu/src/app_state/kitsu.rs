@@ -219,85 +219,15 @@ async fn get_anime_task_impl(
     id: NonZeroU64,
     tx: tokio::sync::oneshot::Sender<anyhow::Result<Arc<KitsuAnime>>>,
 ) {
-    use async_rusqlite::rusqlite::OptionalExtension;
-
-    let query = "
-SELECT 
-    id, 
-    slug,
-    synopsis,
-    title,
-    rating,
-    poster_large,
-    last_update
-FROM
-    kitsu_anime
-WHERE 
-    id = :id;
-";
     let result = request_map
         .get_or_fetch(id, || async move {
             let maybe_anime_result = database
-                .database
-                .access_db(move |database| {
-                    let mut statement = database.prepare_cached(query)?;
-                    let anime = statement
-                        .query_row(
-                            async_rusqlite::rusqlite::named_params! {
-                                ":id": id.get(),
-                            },
-                            |row| {
-                                let last_update: u64 = row.get("last_update")?;
-
-                                /*
-                                match SystemTime::UNIX_EPOCH
-                                    .elapsed()
-                                    .map(|duration| duration.as_secs())
-                                {
-                                    Ok(secs) => {
-                                        if secs.saturating_sub(last_update) > 10 * 60 {
-
-                                        }
-
-                                        duration
-                                    }
-                                    Err(err) => {
-                                        return Ok(anyhow::Error::from(err));
-                                    }
-                                }
-                                */
-
-                                let id = row.get("id")?;
-                                let id = match NonZeroU64::new(id).context("`id` is 0") {
-                                    Ok(id) => id,
-                                    Err(err) => {
-                                        return Ok(Err(err));
-                                    }
-                                };
-
-                                Ok(Result::<_, anyhow::Error>::Ok(Arc::new(KitsuAnime {
-                                    id,
-                                    slug: row.get("slug")?,
-                                    synopsis: row.get("synopsis")?,
-                                    title: row.get("title")?,
-                                    rating: row.get("rating")?,
-                                    poster_large: row.get("poster_large")?,
-                                    last_update,
-                                })))
-                            },
-                        )
-                        .optional()?
-                        .transpose()?;
-
-                    Result::<_, anyhow::Error>::Ok(anime)
-                })
+                .get_kitsu_anime(id)
                 .await
-                .map_err(anyhow::Error::from)
-                .and_then(|error| error)
-                .transpose();
+                .map_err(anyhow::Error::from);
 
-            if let Some(anime_result) = maybe_anime_result {
-                return anime_result.map_err(ArcAnyhowError::new);
+            if let Ok(Some(anime)) = maybe_anime_result {
+                return Ok(anime);
             }
 
             let result = kitsu_get_anime(&client, id)

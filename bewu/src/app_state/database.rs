@@ -4,6 +4,8 @@ pub use self::model::KitsuAnime;
 pub use self::model::KitsuAnimeEpisode;
 use anyhow::Context;
 use async_rusqlite::rusqlite::named_params;
+use async_rusqlite::rusqlite::OptionalExtension;
+use std::num::NonZeroU64;
 use std::path::Path;
 use std::sync::Arc;
 use tracing::error;
@@ -45,6 +47,21 @@ const UPDATE_KITSU_EPISODE_SQL: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/sql/upsert_kitsu_episode.sql"
 ));
+
+const GET_KITSU_ANIME_SQL: &str = "
+SELECT 
+    id, 
+    slug,
+    synopsis,
+    title,
+    rating,
+    poster_large,
+    last_update
+FROM
+    kitsu_anime
+WHERE 
+    id = :id;
+";
 
 #[derive(Debug, Clone)]
 pub struct Database {
@@ -129,6 +146,78 @@ impl Database {
             })
             .await??;
         Ok(())
+    }
+
+    /// Get a kitsu anime.
+    pub async fn get_kitsu_anime(
+        &self,
+        anime_id: NonZeroU64,
+    ) -> anyhow::Result<Option<Arc<KitsuAnime>>> {
+        let anime = self
+            .database
+            .access_db(move |database| {
+                let mut statement = database.prepare_cached(GET_KITSU_ANIME_SQL)?;
+
+                let anime = statement
+                    .query_row(
+                        named_params! {
+                            ":id": anime_id.get(),
+                        },
+                        |row| {
+                            let last_update: u64 = row.get("last_update")?;
+
+                            /*
+                            match SystemTime::UNIX_EPOCH
+                                .elapsed()
+                                .map(|duration| duration.as_secs())
+                            {
+                                Ok(secs) => {
+                                    if secs.saturating_sub(last_update) > 10 * 60 {
+
+                                    }
+
+                                    duration
+                                }
+                                Err(err) => {
+                                    return Ok(anyhow::Error::from(err));
+                                }
+                            }
+                            */
+
+                            let id = row.get("id")?;
+                            let id = match NonZeroU64::new(id).context("`id` is 0") {
+                                Ok(id) => id,
+                                Err(err) => {
+                                    return Ok(Err(err));
+                                }
+                            };
+                            let slug = row.get("slug")?;
+                            let synopsis = row.get("synopsis")?;
+                            let title = row.get("title")?;
+                            let rating = row.get("rating")?;
+                            let poster_large = row.get("poster_large")?;
+
+                            Ok(Result::<Arc<KitsuAnime>, anyhow::Error>::Ok(Arc::new(
+                                KitsuAnime {
+                                    id,
+                                    slug,
+                                    synopsis,
+                                    title,
+                                    rating,
+                                    poster_large,
+                                    last_update,
+                                },
+                            )))
+                        },
+                    )
+                    .optional()?
+                    .transpose()?;
+
+                Result::<_, anyhow::Error>::Ok(anime)
+            })
+            .await??;
+
+        Ok(anime)
     }
 
     /// Optimize the database.

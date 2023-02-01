@@ -1,9 +1,11 @@
 mod database;
 mod kitsu;
 
+// Database re-exports
 pub use self::database::Database;
 pub use self::database::KitsuAnime;
 pub use self::database::KitsuAnimeEpisode;
+
 use self::kitsu::KitsuTask;
 use crate::util::AsyncLockFile;
 use anyhow::ensure;
@@ -186,8 +188,8 @@ impl AppState {
         Ok(anime)
     }
 
-    /// Get kitsu episodes for the given anime id
-    pub async fn get_kitsu_episodes(
+    /// Get kitsu episodes for the anime with the given id
+    pub async fn get_kitsu_anime_episodes(
         &self,
         anime_id: NonZeroU64,
     ) -> anyhow::Result<Arc<[KitsuAnimeEpisode]>> {
