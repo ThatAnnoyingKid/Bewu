@@ -11,7 +11,6 @@ use anyhow::Context;
 use std::num::NonZeroU64;
 use std::path::Path;
 use std::sync::Arc;
-use std::time::SystemTime;
 use tracing::debug;
 use url::Url;
 
@@ -139,35 +138,8 @@ impl AppState {
     }
 
     /// Get the kitsu anime for the given id.
-    pub async fn get_kitsu_anime(&self, id: NonZeroU64) -> anyhow::Result<KitsuAnime> {
-        let document = self.kitsu_client.get_anime(id).await?;
-        let document_data = document.data.context("missing document data")?;
-
-        let last_update = SystemTime::UNIX_EPOCH.elapsed()?.as_secs();
-
-        let attributes = document_data.attributes.context("missing attributes")?;
-        let id: NonZeroU64 = document_data.id.as_deref().context("missing id")?.parse()?;
-        let slug = attributes.slug;
-        let synopsis = attributes.synopsis;
-        let title = attributes.canonical_title;
-        let rating = attributes.average_rating;
-        let poster_large = attributes.poster_image.large.into();
-
-        let anime = KitsuAnime {
-            id,
-            slug,
-            synopsis,
-            title,
-            rating,
-            poster_large,
-            last_update,
-        };
-
-        // TODO: Consider adding special call for single anime.
-        self.database
-            .upsert_kitsu_anime(Arc::from(std::slice::from_ref(&anime)))
-            .await?;
-
+    pub async fn get_kitsu_anime(&self, id: NonZeroU64) -> anyhow::Result<Arc<KitsuAnime>> {
+        let anime = self.kitsu_task.get_anime(id).await?;
         Ok(anime)
     }
 

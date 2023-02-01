@@ -8,6 +8,34 @@ use std::path::Path;
 use std::sync::Arc;
 use tracing::error;
 
+pub trait AsSlice<T> {
+    fn as_slice(&self) -> &[T];
+}
+
+impl<T> AsSlice<T> for T {
+    fn as_slice(&self) -> &[T] {
+        std::slice::from_ref(self)
+    }
+}
+
+impl<T> AsSlice<T> for &[T] {
+    fn as_slice(&self) -> &[T] {
+        self
+    }
+}
+
+impl<T> AsSlice<T> for Arc<T> {
+    fn as_slice(&self) -> &[T] {
+        std::slice::from_ref(self)
+    }
+}
+
+impl<T> AsSlice<T> for Arc<[T]> {
+    fn as_slice(&self) -> &[T] {
+        self
+    }
+}
+
 const SETUP_SQL: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/sql/setup.sql"));
 const UPSERT_KITSU_ANIME_SQL: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -69,12 +97,16 @@ impl Database {
     }
 
     /// Upsert kitsu anime.
-    pub async fn upsert_kitsu_anime(&self, anime: Arc<[KitsuAnime]>) -> anyhow::Result<()> {
+    pub async fn upsert_kitsu_anime<A>(&self, anime: A) -> anyhow::Result<()>
+    where
+        A: AsSlice<KitsuAnime> + Send + 'static,
+    {
         self.database
             .access_db(move |database| {
                 let transaction = database.transaction()?;
                 {
                     let mut statement = transaction.prepare_cached(UPSERT_KITSU_ANIME_SQL)?;
+                    let anime = anime.as_slice();
                     for anime in anime.iter() {
                         statement.execute(named_params! {
                             ":id": anime.id.get(),

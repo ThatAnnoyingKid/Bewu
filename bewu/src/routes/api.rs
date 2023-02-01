@@ -110,7 +110,7 @@ async fn api_kitsu_anime_id(
             title: anime.title.clone(),
             rating: anime.rating.clone(),
 
-            poster_large: anime.poster_large,
+            poster_large: anime.poster_large.clone(),
         })
         .map_err(|error| {
             error!("{error:?}");
