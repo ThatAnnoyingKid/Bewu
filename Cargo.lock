@@ -1215,7 +1215,7 @@ dependencies = [
 [[package]]
 name = "pikadick-util"
 version = "0.0.0"
-source = "git+https://github.com/adumbidiot/pikadick-rs?branch=request-map#03f36c77257963c832464ac7d6b27370392cbec7"
+source = "git+https://github.com/adumbidiot/pikadick-rs?branch=request-map#c4d4396b78c2e661c7618d6c6b5c0fc0e1b584e0"
 dependencies = [
  "anyhow",
  "futures",
