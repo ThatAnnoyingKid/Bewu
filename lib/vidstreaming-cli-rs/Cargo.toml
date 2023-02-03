@@ -1,0 +1,15 @@
+[package]
+name = "vidstreaming-cli"
+version = "0.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[[bin]]
+name = "vidstreaming"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0.68"
+argh = "0.1.10"
+tokio = { version = "1.25.0", features = ["rt-multi-thread"] }
+vidstreaming = { path = "../vidstreaming-rs" }
