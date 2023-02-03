@@ -407,7 +407,7 @@ pub struct Tracks {
     /// ?
     #[serde(flatten)]
     pub tracks: HashMap<String, serde_json::Value>,
-    
+
     /// Unknown KVs
     #[serde(flatten)]
     pub unknown: HashMap<String, serde_json::Value>,
