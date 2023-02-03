@@ -43,7 +43,7 @@ const UPSERT_KITSU_ANIME_SQL: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/sql/upsert_kitsu_anime.sql"
 ));
-const UPDATE_KITSU_EPISODE_SQL: &str = include_str!(concat!(
+const UPSERT_KITSU_EPISODE_SQL: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/sql/upsert_kitsu_episode.sql"
 ));
@@ -125,7 +125,7 @@ impl Database {
             .access_db(move |database| {
                 let transaction = database.transaction()?;
                 {
-                    let mut statement = transaction.prepare_cached(UPDATE_KITSU_EPISODE_SQL)?;
+                    let mut statement = transaction.prepare_cached(UPSERT_KITSU_EPISODE_SQL)?;
                     let episodes = episodes.as_slice();
                     for episode in episodes.iter() {
                         statement.execute(named_params! {
