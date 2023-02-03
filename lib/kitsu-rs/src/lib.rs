@@ -99,7 +99,7 @@ mod tests {
         for search in SEARCHES {
             let path = format!("test_data/searches/{search}.json");
             let search_json = std::fs::read_to_string(&path).unwrap_or_else(|e| {
-                panic!("failed to read \"{path}\": {}", e);
+                panic!("failed to read \"{path}\": {e}");
             });
             let search_result =
                 serde_json::from_str::<JsonDocument<Vec<ResourceObject<Anime>>>>(&search_json);
