@@ -22,6 +22,13 @@ pub struct Options {
         description = "whether to fetch and print information for the video player"
     )]
     pub video_player: bool,
+
+    #[argh(
+        switch,
+        long = "video-player-video-data",
+        description = "whether to fetch and print information for the video player's video data"
+    )]
+    pub video_player_video_data: bool,
 }
 
 pub async fn exec(client: vidstreaming::Client, options: Options) -> anyhow::Result<()> {
@@ -30,20 +37,35 @@ pub async fn exec(client: vidstreaming::Client, options: Options) -> anyhow::Res
         .await
         .with_context(|| format!("failed to get episode at \"{}\"", options.url.as_str()))?;
 
-    let video_player = match options.video_player {
-        true => {
-            let video_player = client
-                .get_video_player(episode.video_player_url.as_str())
+    let video_player_info = if options.video_player || options.video_player_video_data {
+        let video_player = client
+            .get_video_player(episode.video_player_url.as_str())
+            .await
+            .with_context(|| {
+                format!(
+                    "failed to get video player for url \"{}\"",
+                    episode.video_player_url.as_str()
+                )
+            })?;
+
+        let video_player_video_data = if options.video_player_video_data {
+            let video_player_video_data = client
+                .get_video_player_video_data(&video_player)
                 .await
                 .with_context(|| {
-                    format!(
-                        "failed to get video player for url \"{}\"",
-                        episode.video_player_url.as_str()
-                    )
-                })?;
-            Some(video_player)
-        }
-        false => None,
+                format!(
+                    "failed to get video data for video player \"{}\"",
+                    episode.video_player_url.as_str()
+                )
+            })?;
+            Some(video_player_video_data)
+        } else {
+            None
+        };
+
+        Some((video_player, video_player_video_data))
+    } else {
+        None
     };
 
     println!("Name: {}", episode.name);
@@ -64,15 +86,43 @@ pub async fn exec(client: vidstreaming::Client, options: Options) -> anyhow::Res
             println!("    Type: {}", episode.anime_type.as_str());
         }
     }
-    if let Some(video_player) = video_player {
+    if let Some((video_player, video_player_video_data)) = video_player_info {
         println!("Video Player: ");
-        println!("  Crypto Data Value: {}", video_player.crypto_data_value);
-        println!("  Request Key: {}", video_player.request_key);
-        println!("  Request Iv: {}", video_player.request_iv);
-        println!("  Response Key: {}", video_player.response_key);
-        println!("  Sources: ");
-        for (i, source) in video_player.sources.iter().enumerate() {
-            println!("    {}) {}", i + 1, source);
+        if options.video_player {
+            println!("  Crypto Data Value: {}", video_player.crypto_data_value);
+            println!("  Request Key: {}", video_player.request_key);
+            println!("  Request Iv: {}", video_player.request_iv);
+            println!("  Response Key: {}", video_player.response_key);
+            println!("  Sources: ");
+            for (i, source) in video_player.sources.iter().enumerate() {
+                println!("    {}) {}", i + 1, source);
+            }
+        }
+
+        if let Some(video_data) = video_player_video_data {
+            println!("  Video Data:");
+            println!("    Sources: ");
+            for (i, source) in video_data.source.iter().enumerate() {
+                println!("      {}) {}", i + 1, source.label);
+                println!("        Url: {}", source.file);
+                println!("        Kind: {}", source.kind);
+            }
+            println!("    Backup Sources: ");
+            for (i, source) in video_data.source_bk.iter().enumerate() {
+                println!("      {}) {}", i + 1, source.label);
+                println!("        Url: {}", source.file);
+                println!("        Kind: {}", source.kind);
+            }
+            println!("      IFrame Link: {}", video_data.linkiframe.as_str());
+            if !video_data.track.tracks.is_empty() {
+                println!("    Tracks: {:?}", video_data.track.tracks);
+            }
+            if !video_data.advertising.is_empty() {
+                println!("    Advertising: {:?}", video_data.advertising);
+            }
+            if !video_data.unknown.is_empty() {
+                println!("    Unknown: {:#?}", video_data.unknown);
+            }
         }
     }
 

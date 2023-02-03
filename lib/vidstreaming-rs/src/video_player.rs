@@ -313,41 +313,18 @@ pub struct VideoData {
     /// Backup srces
     pub source_bk: Vec<Source>,
 
-    /// Unknown KVs
-    #[serde(flatten)]
-    pub unknown: HashMap<String, serde_json::Value>,
-}
+    /// ?
+    pub advertising: Vec<serde_json::Value>,
 
-/// Video source
-#[derive(Debug, Clone, serde::Deserialize)]
-pub struct Source {
-    /// Video url
-    pub file: Url,
+    /// ?
+    pub linkiframe: Url,
 
-    /// Stream label
-    pub label: String,
-
-    /// Stream kind
-    #[serde(rename = "type")]
-    pub kind: String,
+    /// Associated video tracks
+    pub track: Tracks,
 
     /// Unknown KVs
     #[serde(flatten)]
     pub unknown: HashMap<String, serde_json::Value>,
-}
-
-impl Source {
-    /// Returns true if this is an mp4
-    pub fn is_mp4(&self) -> bool {
-        // A source can lie sometimes, so do a basic check to make sure the url doesn't look like a m3u8
-        matches!(self.kind.as_str(), "mp4") && !self.file.path().ends_with("m3u8")
-    }
-
-    /// Returns true if this is an hls stream
-    pub fn is_hls(&self) -> bool {
-        // A source can lie sometimes, so do a basic check see if the url looks like a m3u8
-        matches!(self.kind.as_str(), "hls") || self.file.path().ends_with("m3u8")
-    }
 }
 
 impl VideoData {
@@ -391,6 +368,49 @@ impl VideoData {
             .or(source_hls)
             .or(source_auto_p)
     }
+}
+
+/// Video source
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct Source {
+    /// Video url
+    pub file: Url,
+
+    /// Stream label
+    pub label: String,
+
+    /// Stream kind
+    #[serde(rename = "type")]
+    pub kind: String,
+
+    /// Unknown KVs
+    #[serde(flatten)]
+    pub unknown: HashMap<String, serde_json::Value>,
+}
+
+impl Source {
+    /// Returns true if this is an mp4
+    pub fn is_mp4(&self) -> bool {
+        // A source can lie sometimes, so do a basic check to make sure the url doesn't look like a m3u8
+        matches!(self.kind.as_str(), "mp4") && !self.file.path().ends_with("m3u8")
+    }
+
+    /// Returns true if this is an hls stream
+    pub fn is_hls(&self) -> bool {
+        // A source can lie sometimes, so do a basic check see if the url looks like a m3u8
+        matches!(self.kind.as_str(), "hls") || self.file.path().ends_with("m3u8")
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct Tracks {
+    /// ?
+    #[serde(flatten)]
+    pub tracks: HashMap<String, serde_json::Value>,
+    
+    /// Unknown KVs
+    #[serde(flatten)]
+    pub unknown: HashMap<String, serde_json::Value>,
 }
 
 #[cfg(test)]
