@@ -114,14 +114,14 @@ pub async fn exec(client: vidstreaming::Client, options: Options) -> anyhow::Res
                 println!("        Kind: {}", source.kind);
             }
             println!("      IFrame Link: {}", video_data.linkiframe.as_str());
-            if !video_data.track.tracks.is_empty() {
-                println!("    Tracks: {:?}", video_data.track.tracks);
+            if !video_data.track.is_empty() {
+                println!("    Tracks: {:?}", video_data.track);
             }
             if !video_data.advertising.is_empty() {
                 println!("    Advertising: {:?}", video_data.advertising);
             }
             if !video_data.unknown.is_empty() {
-                println!("    Unknown: {:#?}", video_data.unknown);
+                println!("    Unknown: {:?}", video_data.unknown);
             }
         }
     }

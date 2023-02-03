@@ -320,7 +320,7 @@ pub struct VideoData {
     pub linkiframe: Url,
 
     /// Associated video tracks
-    pub track: Tracks,
+    pub track: HashMap<String, serde_json::Value>,
 
     /// Unknown KVs
     #[serde(flatten)]
@@ -400,17 +400,6 @@ impl Source {
         // A source can lie sometimes, so do a basic check see if the url looks like a m3u8
         matches!(self.kind.as_str(), "hls") || self.file.path().ends_with("m3u8")
     }
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-pub struct Tracks {
-    /// ?
-    #[serde(flatten)]
-    pub tracks: HashMap<String, serde_json::Value>,
-
-    /// Unknown KVs
-    #[serde(flatten)]
-    pub unknown: HashMap<String, serde_json::Value>,
 }
 
 #[cfg(test)]
