@@ -15,6 +15,13 @@ pub struct Options {
         default = "0"
     )]
     pub related_episodes_limit: usize,
+
+    #[argh(
+        switch,
+        long = "video-player",
+        description = "whether to fetch and print information for the video player"
+    )]
+    pub video_player: bool,
 }
 
 pub async fn exec(client: vidstreaming::Client, options: Options) -> anyhow::Result<()> {
@@ -22,6 +29,22 @@ pub async fn exec(client: vidstreaming::Client, options: Options) -> anyhow::Res
         .get_episode(options.url.as_str())
         .await
         .with_context(|| format!("failed to get episode at \"{}\"", options.url.as_str()))?;
+
+    let video_player = match options.video_player {
+        true => {
+            let video_player = client
+                .get_video_player(episode.video_player_url.as_str())
+                .await
+                .with_context(|| {
+                    format!(
+                        "failed to get video player for url \"{}\"",
+                        episode.video_player_url.as_str()
+                    )
+                })?;
+            Some(video_player)
+        }
+        false => None,
+    };
 
     println!("Name: {}", episode.name);
     if let Some(description) = episode.description.as_deref() {
@@ -41,19 +64,17 @@ pub async fn exec(client: vidstreaming::Client, options: Options) -> anyhow::Res
             println!("    Type: {}", episode.anime_type.as_str());
         }
     }
-
-    /*
-    let video_player = client
-        .vidstreaming_client
-        .get_video_player(episode.video_player_url.as_str())
-        .await
-        .context("failed to get video player")?;
-    println!("Sources: ");
-    for (i, source) in video_player.sources.iter().enumerate() {
-        println!("{}) {}", i + 1, source);
+    if let Some(video_player) = video_player {
+        println!("Video Player: ");
+        println!("  Crypto Data Value: {}", video_player.crypto_data_value);
+        println!("  Request Key: {}", video_player.request_key);
+        println!("  Request Iv: {}", video_player.request_iv);
+        println!("  Response Key: {}", video_player.response_key);
+        println!("  Sources: ");
+        for (i, source) in video_player.sources.iter().enumerate() {
+            println!("    {}) {}", i + 1, source);
+        }
     }
-    println!();
-    */
 
     Ok(())
 }
