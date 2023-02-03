@@ -48,7 +48,7 @@ pub async fn exec(client: vidstreaming::Client, options: Options) -> anyhow::Res
 
     println!("Name: {}", episode.name);
     if let Some(description) = episode.description.as_deref() {
-        println!("Description: {}", description);
+        println!("Description: {description}");
     }
     println!("Video Player Url: {}", episode.video_player_url.as_str());
     if options.related_episodes_limit > 0 {
