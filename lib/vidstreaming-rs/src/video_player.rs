@@ -319,9 +319,6 @@ pub struct VideoData {
     /// ?
     pub linkiframe: Url,
 
-    /// Associated video tracks
-    pub track: HashMap<String, serde_json::Value>,
-
     /// Unknown KVs
     #[serde(flatten)]
     pub unknown: HashMap<String, serde_json::Value>,
