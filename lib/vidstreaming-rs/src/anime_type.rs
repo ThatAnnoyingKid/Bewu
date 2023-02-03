@@ -24,6 +24,19 @@ pub enum AnimeType {
 }
 
 impl AnimeType {
+    /// Get this as a str.
+    ///
+    /// String representations are 3 letters, all capitals.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Sub => "SUB",
+            Self::Dub => "DUB",
+            Self::Raw => "RAW",
+        }
+    }
+}
+
+impl AnimeType {
     /// Returns `true` if it is `Dub`.
     pub fn is_dub(self) -> bool {
         matches!(self, Self::Dub)

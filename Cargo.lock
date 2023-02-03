@@ -2230,6 +2230,7 @@ dependencies = [
  "anyhow",
  "argh",
  "tokio",
+ "url",
  "vidstreaming",
 ]
 

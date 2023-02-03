@@ -11,6 +11,7 @@ struct Options {
 #[argh(subcommand)]
 enum Subcommand {
     Search(self::commands::search::Options),
+    Info(self::commands::info::Options),
 }
 
 fn main() -> anyhow::Result<()> {
@@ -27,6 +28,9 @@ async fn async_main(options: Options) -> anyhow::Result<()> {
     match options.subcommand {
         Subcommand::Search(options) => {
             self::commands::search::exec(client, options).await?;
+        }
+        Subcommand::Info(options) => {
+            self::commands::info::exec(client, options).await?;
         }
     }
     Ok(())
