@@ -1,5 +1,6 @@
 mod database;
 mod kitsu;
+mod vidstreaming;
 
 // Database re-exports
 pub use self::database::Database;
@@ -7,20 +8,37 @@ pub use self::database::KitsuAnime;
 pub use self::database::KitsuAnimeEpisode;
 
 use self::kitsu::KitsuTask;
+use crate::util::AbortJoinHandle;
 use crate::util::AsyncLockFile;
+use anyhow::anyhow;
 use anyhow::ensure;
 use anyhow::Context;
 use std::num::NonZeroU64;
 use std::path::Path;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::SystemTime;
+use tokio_stream::Stream;
+use tokio_stream::StreamExt;
 use tracing::debug;
+use tracing::error;
+use tracing::trace;
 use url::Url;
 
 #[derive(Debug)]
 pub struct VidstreamingEpisode {
     /// The url of the best source
     pub best_source: Url,
+}
+
+#[derive(Debug)]
+pub enum VidstreamingDownloadMessage {
+    EpisodeDownload { result: anyhow::Result<()> },
+    VideoPlayerDownload { result: anyhow::Result<()> },
+    VideoDataDownload { result: anyhow::Result<()> },
+    SourceSelect { result: anyhow::Result<()> },
+
+    Error { error: anyhow::Error },
 }
 
 /// The app state
@@ -43,7 +61,10 @@ pub struct AppState {
     kitsu_task: KitsuTask,
 
     kitsu_client: ::kitsu::Client,
-    vidstreaming_client: vidstreaming::Client,
+    vidstreaming_client: ::vidstreaming::Client,
+
+    vidstreaming_download: std::sync::Mutex<Option<AbortJoinHandle<()>>>,
+    vidstreaming_path: PathBuf,
 }
 
 impl AppState {
@@ -162,7 +183,7 @@ impl AppState {
             .context("failed to open database")?;
 
         let kitsu_client = ::kitsu::Client::new();
-        let vidstreaming_client = vidstreaming::Client::new();
+        let vidstreaming_client = ::vidstreaming::Client::new();
 
         let kitsu_task = KitsuTask::new(database.clone());
 
@@ -173,6 +194,9 @@ impl AppState {
 
             kitsu_client,
             vidstreaming_client,
+
+            vidstreaming_download: std::sync::Mutex::new(None),
+            vidstreaming_path: vidstreaming_sub_directory,
         })
     }
 
@@ -312,7 +336,12 @@ impl AppState {
     pub async fn get_vidstreaming_episode(
         &self,
         id: NonZeroU64,
-    ) -> anyhow::Result<VidstreamingEpisode> {
+    ) -> anyhow::Result<impl Stream<Item = VidstreamingDownloadMessage>> {
+        let file_name = format!("{id}.mp4");
+        let out_path = self.vidstreaming_path.join(file_name);
+
+        ensure!(!bewu_util::try_exists(&out_path).await?, "file exists");
+
         let episode = self.get_kitsu_episode(id).await?;
         let anime = self.get_kitsu_anime(episode.anime_id).await?;
 
@@ -322,45 +351,236 @@ impl AppState {
             anime.slug, episode.number,
         );
 
-        debug!("using vidstreaming url \"{}\"", url);
+        let old_handle;
+        let ret;
+        {
+            let mut vidstreaming_download = self
+                .vidstreaming_download
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
 
-        let vidstreaming_episode = self.vidstreaming_client.get_episode(url.as_str()).await?;
-        let video_player = self
-            .vidstreaming_client
-            .get_video_player(vidstreaming_episode.video_player_url.as_str())
-            .await?;
-        let video_data = self
-            .vidstreaming_client
-            .get_video_player_video_data(&video_player)
-            .await?;
+            if let Some(handle) = vidstreaming_download.as_ref() {
+                ensure!(handle.as_ref().is_finished(), "download in progress");
+            }
 
-        debug!("located {} sources", video_data.source.len());
-        for source in video_data.source.iter() {
-            debug!(
-                "found source: (url={}, label={}, kind={})",
-                source.file, source.label, source.kind
-            );
+            old_handle = vidstreaming_download.take();
+
+            let (tx, rx) = tokio::sync::mpsc::channel(128);
+            let vidstreaming_client = self.vidstreaming_client.clone();
+            let vidstreaming_path = self.vidstreaming_path.clone();
+            let handle = tokio::task::spawn(async move {
+                debug!("using vidstreaming url \"{}\"", url);
+
+                let vidstreaming_episode = match vidstreaming_client.get_episode(url.as_str()).await
+                {
+                    Ok(vidstreaming_episode) => {
+                        let _ = tx
+                            .send(VidstreamingDownloadMessage::EpisodeDownload { result: Ok(()) })
+                            .await
+                            .is_ok();
+
+                        vidstreaming_episode
+                    }
+                    Err(e) => {
+                        let _ = tx
+                            .send(VidstreamingDownloadMessage::EpisodeDownload {
+                                result: Err(e.into()),
+                            })
+                            .await
+                            .is_ok();
+                        return;
+                    }
+                };
+
+                let video_player = match vidstreaming_client
+                    .get_video_player(vidstreaming_episode.video_player_url.as_str())
+                    .await
+                {
+                    Ok(video_player) => {
+                        let _ = tx
+                            .send(VidstreamingDownloadMessage::VideoPlayerDownload {
+                                result: Ok(()),
+                            })
+                            .await
+                            .is_ok();
+                        video_player
+                    }
+                    Err(e) => {
+                        let _ = tx
+                            .send(VidstreamingDownloadMessage::VideoPlayerDownload {
+                                result: Err(e.into()),
+                            })
+                            .await
+                            .is_ok();
+                        return;
+                    }
+                };
+
+                let video_data = match vidstreaming_client
+                    .get_video_player_video_data(&video_player)
+                    .await
+                {
+                    Ok(video_data) => {
+                        let _ = tx
+                            .send(VidstreamingDownloadMessage::VideoDataDownload { result: Ok(()) })
+                            .await
+                            .is_ok();
+
+                        video_data
+                    }
+                    Err(e) => {
+                        let _ = tx
+                            .send(VidstreamingDownloadMessage::VideoDataDownload {
+                                result: Err(e.into()),
+                            })
+                            .await
+                            .is_ok();
+                        return;
+                    }
+                };
+
+                debug!("located {} sources", video_data.source.len());
+                for source in video_data.source.iter() {
+                    debug!(
+                        "found source: (url={}, label={}, kind={})",
+                        source.file, source.label, source.kind
+                    );
+                }
+
+                debug!("located {} backup sources", video_data.source_bk.len());
+                for source in video_data.source_bk.iter() {
+                    debug!(
+                        "found source: (url={}, label={}, kind={})",
+                        source.file, source.label, source.kind
+                    );
+                }
+
+                let best_source = match video_data
+                    .get_best_source()
+                    .context("failed to select a source")
+                {
+                    Ok(source) => {
+                        let _ = tx
+                            .send(VidstreamingDownloadMessage::SourceSelect { result: Ok(()) })
+                            .await
+                            .is_ok();
+
+                        source
+                    }
+                    Err(e) => {
+                        let _ = tx
+                            .send(VidstreamingDownloadMessage::SourceSelect { result: Err(e) })
+                            .await
+                            .is_ok();
+                        return;
+                    }
+                };
+
+                debug!(
+                    "selected source: (url={}, label={}, kind={})",
+                    best_source.file, best_source.label, best_source.kind
+                );
+
+                let temp_path = nd_util::with_push_extension(&out_path, "part");
+                let mut download_stream = match tokio_ffmpeg_cli::Builder::new()
+                    .audio_codec("copy")
+                    .video_codec("copy")
+                    .input(best_source.file.as_str())
+                    .output_format("mp4")
+                    .output(&temp_path)
+                    .overwrite(false)
+                    .spawn()
+                {
+                    Ok(stream) => stream,
+                    Err(_e) => {
+                        return;
+                    }
+                };
+
+                while let Some(event) = download_stream.next().await {
+                    let event = match event {
+                        Ok(event) => event,
+                        Err(e) => {
+                            let _ = tx
+                                .send(VidstreamingDownloadMessage::Error {
+                                    error: e.into(), // .context("downlaod stream error")
+                                })
+                                .await
+                                .is_ok();
+                            continue;
+                        }
+                    };
+
+                    match event {
+                        tokio_ffmpeg_cli::Event::Progress(event) => {
+                            /*
+                            let out_time = match parse_ffmpeg_time(&event.out_time) {
+                                Ok(out_time) => out_time,
+                                Err(e) => {
+                                    last_error = Err(e).context("failed to parse out time");
+                                    continue;
+                                }
+                            };
+                            */
+                        }
+                        tokio_ffmpeg_cli::Event::ExitStatus(exit_status) => {
+                            if !exit_status.success() {
+                                let _ = tx
+                                    .send(VidstreamingDownloadMessage::Error {
+                                        error: anyhow!(
+                                            "ffmpeg exit status was \"{exit_status:?}\""
+                                        ),
+                                    })
+                                    .await
+                                    .is_ok();
+                            }
+                        }
+                        tokio_ffmpeg_cli::Event::Unknown(line) => {
+                            trace!(line);
+                        }
+                    }
+                }
+            });
+            *vidstreaming_download = Some(AbortJoinHandle::new(handle));
+            ret = rx;
         }
 
-        // debug!("{:#?}", video_data.source_bk);
+        if let Some(handle) = old_handle {
+            if let Err(e) = handle
+                .into_inner()
+                .await
+                .context("failed to join download task")
+            {
+                error!("{e:?}");
+            }
+        }
 
-        let best_source = video_data
-            .get_best_source()
-            .context("failed to select source")?;
-        debug!(
-            "selected source: (url={}, label={}, kind={})",
-            best_source.file, best_source.label, best_source.kind
-        );
-
+        /*
         Ok(VidstreamingEpisode {
             best_source: best_source.file.clone(),
         })
+        */
+        Ok(tokio_stream::wrappers::ReceiverStream::new(ret))
     }
 
     /// Shutdown the app state.
     ///
     /// This should only be called once.
     pub async fn shutdown(&self) -> anyhow::Result<()> {
+        let handle = self
+            .vidstreaming_download
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .take();
+        if let Some(handle) = handle {
+            let handle = handle.into_inner();
+
+            handle.abort();
+
+            // TODO: Don't let an error here stop the shutdown sequence
+            handle.await?;
+        }
+
         debug!("shutting down kitsu task");
         let kitsu_shutdown_result = self
             .kitsu_task

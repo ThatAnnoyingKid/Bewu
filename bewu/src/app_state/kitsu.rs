@@ -14,28 +14,6 @@ use tracing::warn;
 type SearchResult = Result<Arc<[KitsuAnime]>, anyhow::Error>;
 type SearchRequestMap = RequestMap<Box<str>, Result<Arc<[KitsuAnime]>, ArcAnyhowError>>;
 
-/*
-struct AbortJoinHandle<T> {
-    handle: tokio::task::JoinHandle<T>,
-}
-
-impl<T> AbortJoinHandle<T> {
-    fn new(handle: tokio::task::JoinHandle<T>) -> Self {
-        Self { handle }
-    }
-
-    fn into_inner(self) -> tokio::task::JoinHandle<T> {
-        self.handle
-    }
-}
-
-impl<T> Drop for AbortJoinHandle<T> {
-    fn drop(&mut self) {
-        self.handle.abort();
-    }
-}
-*/
-
 #[derive(Debug)]
 enum KitsuTaskMessage {
     Close {

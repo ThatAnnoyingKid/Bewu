@@ -157,12 +157,16 @@ dependencies = [
  "anyhow",
  "async-rusqlite",
  "axum",
+ "bewu-util",
  "fd-lock",
  "kitsu",
+ "nd-util",
  "pikadick-util",
  "serde",
  "serde_json",
  "tokio",
+ "tokio-ffmpeg-cli",
+ "tokio-stream",
  "toml",
  "tower",
  "tower-http",
@@ -170,6 +174,13 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "vidstreaming",
+]
+
+[[package]]
+name = "bewu-util"
+version = "0.0.0"
+dependencies = [
+ "tokio",
 ]
 
 [[package]]
@@ -2315,6 +2326,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "argh",
+ "bewu-util",
  "indicatif",
  "nd-util",
  "serde",

@@ -1,8 +1,8 @@
 use anyhow::anyhow;
+use anyhow::bail;
 use anyhow::ensure;
 use anyhow::Context;
 use std::collections::HashMap;
-use std::path::Path;
 use std::path::PathBuf;
 use tokio_stream::StreamExt;
 use url::Url;
@@ -12,6 +12,33 @@ use url::Url;
 pub struct Options {
     #[argh(positional, description = "the url of the episode to download")]
     pub url: Url,
+
+    #[argh(
+        option,
+        description = "the source the download should use. Defaults to main.",
+        default = "Default::default()"
+    )]
+    source: Source,
+}
+
+/// The source
+#[derive(Debug, Default)]
+pub enum Source {
+    #[default]
+    Main,
+    Backup,
+}
+
+impl std::str::FromStr for Source {
+    type Err = anyhow::Error;
+
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        match input {
+            "main" => Ok(Self::Main),
+            "backup" => Ok(Self::Backup),
+            _ => bail!("unknown source \"{input}\""),
+        }
+    }
 }
 
 pub async fn exec(client: vidstreaming::Client, options: Options) -> anyhow::Result<()> {
@@ -23,8 +50,9 @@ pub async fn exec(client: vidstreaming::Client, options: Options) -> anyhow::Res
 
     let out_path = PathBuf::new().join(format!("{}.mp4", episode.name));
 
-    if try_exists(&out_path).await? {
+    if bewu_util::try_exists(&out_path).await? {
         println!("File exists, exiting...");
+        return Ok(());
     }
 
     println!("Fetching video player...");
@@ -42,9 +70,18 @@ pub async fn exec(client: vidstreaming::Client, options: Options) -> anyhow::Res
         .get_video_player_video_data(&video_player)
         .await
         .context("failed to get video player video data")?;
-    let best_source = video_player_video_data
-        .get_best_source()
-        .context("failed to select source")?;
+    let best_source = match options.source {
+        Source::Main => video_player_video_data
+            .get_best_source()
+            .context("failed to select source")?,
+        Source::Backup => {
+            ensure!(video_player_video_data.source_bk.len() == 1);
+            video_player_video_data
+                .source_bk
+                .first()
+                .context("failed to select source")?
+        }
+    };
 
     println!("Probing sources...");
     let probe_result = probe_url(best_source.file.as_str()).await?;
@@ -69,8 +106,7 @@ pub async fn exec(client: vidstreaming::Client, options: Options) -> anyhow::Res
         .spawn()?;
 
     let progress_bar = indicatif::ProgressBar::new(duration as u64);
-    let progress_bar_style_template =
-        "[Time = {elapsed_precise} | ETA = {eta_precise}] {wide_bar} {human_pos}/{human_len}";
+    let progress_bar_style_template = "[Time = {elapsed_precise} | ETA = {eta_precise}] {wide_bar}";
     let progress_bar_style = indicatif::ProgressStyle::default_bar()
         .template(progress_bar_style_template)
         .expect("invalid progress bar style template");
@@ -219,15 +255,4 @@ fn parse_ffmpeg_time(time: &str) -> anyhow::Result<u64> {
     ensure!(iter.next().is_none());
 
     Ok((hours * 60 * 60) + (minutes * 60) + seconds)
-}
-
-async fn try_exists<P>(path: P) -> std::io::Result<bool>
-where
-    P: AsRef<Path>,
-{
-    match tokio::fs::metadata(path.as_ref()).await {
-        Ok(_metadata) => Ok(true),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
-        Err(e) => Err(e),
-    }
 }

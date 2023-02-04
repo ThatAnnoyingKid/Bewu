@@ -10,6 +10,7 @@ use axum::Json;
 use axum::Router;
 use std::num::NonZeroU64;
 use std::sync::Arc;
+use tokio_stream::StreamExt;
 use tracing::error;
 use url::Url;
 
@@ -192,16 +193,18 @@ async fn api_vidstreaming_id(
     let result = app_state
         .get_vidstreaming_episode(id)
         .await
-        .map(|episode| ApiVidstreamingEpisode {
-            best_source: episode.best_source,
-        })
         .map_err(|error| {
             error!("{error:?}");
             ApiError::from_anyhow(error)
         });
 
     match result {
-        Ok(result) => (StatusCode::OK, Json(result)).into_response(),
+        Ok(result) => axum::response::Sse::new(result.map(|event| {
+            Result::<_, anyhow::Error>::Ok(
+                axum::response::sse::Event::default().data(format!("{event:?}")),
+            )
+        }))
+        .into_response(),
         Err(error) => (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response(),
     }
 }
