@@ -5,21 +5,21 @@
   export let params = {};
 
   let episodeId = params.id;
-  
+
   let downloadState = null;
 
   let kitsuEpisodeData = Api.getKitsuEpisode(episodeId);
   let vidstreamingEpisodeData = Api.getVidstreamingEpisode(episodeId);
-  
+
   async function performVidstreamingDownload() {
     downloadState = {};
     for await (const event of Api.downloadVidstreamingEpisode(episodeId)) {
-      switch(event.type) {
-        case 'progress':
-            downloadState.progress = event.progress;
-            break;
+      switch (event.type) {
+        case "progress":
+          downloadState.progress = event.progress;
+          break;
         default:
-            console.log(event);
+          console.log(event);
       }
     }
     downloadState = null;
@@ -51,15 +51,11 @@
           height="1080"
           src={vidstreamingEpisodeData.url}
         />
+      {:else if downloadState === null}
+        Video is not downloaded:
+        <button on:click={performVidstreamingDownload}> Download </button>
       {:else}
-        {#if downloadState === null}
-            Video is not downloaded: 
-            <button on:click={performVidstreamingDownload}>
-                Download
-            </button>
-        {:else}
-            Progress: {downloadState.progress}
-        {/if}
+        Progress: {downloadState.progress}
       {/if}
     {/await}
   {/await}
