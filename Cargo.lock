@@ -181,6 +181,8 @@ name = "bewu-util"
 version = "0.0.0"
 dependencies = [
  "tokio",
+ "tokio-stream",
+ "tokio-util",
 ]
 
 [[package]]
