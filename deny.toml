@@ -46,6 +46,7 @@ skip = [
     { name = "phf", version = "0.8.0" },
     { name = "itoa", version = "0.4.8" },
     { name = "getrandom", version = "0.1.16" },
+    { name = "windows-sys", version = "0.42.0" },
 ]
 deny = []
 

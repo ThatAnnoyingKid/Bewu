@@ -12,6 +12,7 @@ struct Options {
 enum Subcommand {
     Search(self::commands::search::Options),
     Info(self::commands::info::Options),
+    Download(self::commands::download::Options),
 }
 
 fn main() -> anyhow::Result<()> {
@@ -31,6 +32,9 @@ async fn async_main(options: Options) -> anyhow::Result<()> {
         }
         Subcommand::Info(options) => {
             self::commands::info::exec(client, options).await?;
+        }
+        Subcommand::Download(options) => {
+            self::commands::download::exec(client, options).await?;
         }
     }
     Ok(())

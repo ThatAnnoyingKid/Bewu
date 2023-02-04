@@ -310,13 +310,13 @@ pub struct VideoData {
     /// The sources
     pub source: Vec<Source>,
 
-    /// Backup srces
+    /// The original sources?
     pub source_bk: Vec<Source>,
 
     /// ?
     pub advertising: Vec<serde_json::Value>,
 
-    /// ?
+    /// The back-up url if the sources fail
     pub linkiframe: Url,
 
     /// Unknown KVs
