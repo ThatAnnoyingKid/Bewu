@@ -8,12 +8,16 @@
 
   let videoUp = false;
 
+  async function performVidstreamingDownload() {
+    for await (const event of Api.downloadVidstreamingEpisode(episodeId)) {
+      console.log(event);
+    }
+  }
+
   let kitsuEpisodeData = Api.getKitsuEpisode(episodeId);
-  let vidstreamingEpisodeData = Api.getVidstreamingEpisode(episodeId);
-  let episodeData = Promise.all([
-    kitsuEpisodeData,
-    vidstreamingEpisodeData,
-  ]).then((result) => {
+  let vidstreamingEpisodeDownload = performVidstreamingDownload();
+
+  let episodeData = Promise.all([kitsuEpisodeData]).then((result) => {
     requestAnimationFrame(() => {
       if (!videoUp) {
         videojs(document.querySelector(".video-js"));

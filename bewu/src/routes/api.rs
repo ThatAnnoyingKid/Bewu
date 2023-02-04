@@ -1,13 +1,17 @@
+use crate::app_state::VidstreamingDownloadStateUpdate;
 use crate::AppState;
 use anyhow::Context;
 use axum::extract::Path;
 use axum::extract::Query;
 use axum::extract::State;
 use axum::http::StatusCode;
+use axum::response::sse;
 use axum::response::IntoResponse;
+use axum::response::Sse;
 use axum::routing::get;
 use axum::Json;
 use axum::Router;
+use bewu_util::StateUpdateItem;
 use std::num::NonZeroU64;
 use std::sync::Arc;
 use tokio_stream::StreamExt;
@@ -23,6 +27,17 @@ impl ApiError {
     fn from_anyhow(error: anyhow::Error) -> Self {
         Self {
             messages: error.chain().map(|e| e.to_string()).collect(),
+        }
+    }
+}
+
+impl<E> From<&E> for ApiError
+where
+    E: std::error::Error + 'static,
+{
+    fn from(error: &E) -> Self {
+        Self {
+            messages: anyhow::Chain::new(error).map(|e| e.to_string()).collect(),
         }
     }
 }
@@ -186,6 +201,45 @@ struct ApiVidstreamingEpisode {
     best_source: Url,
 }
 
+#[derive(Debug, serde::Serialize)]
+struct ApiVidstreamingDownloadState {
+    #[serde(serialize_with = "serialize_optional_arc_str")]
+    info: Option<Arc<str>>,
+
+    progress: f32,
+    error: Option<ApiError>,
+}
+
+#[derive(Debug, serde::Serialize)]
+#[serde(tag = "type")]
+enum ApiVidstreamingDownloadStateUpdate {
+    #[serde(rename = "info")]
+    Info {
+        #[serde(serialize_with = "serialize_arc_str")]
+        info: Arc<str>,
+    },
+    #[serde(rename = "progress")]
+    Progress { progress: f32 },
+    #[serde(rename = "error")]
+    Error { error: ApiError },
+}
+
+fn serialize_optional_arc_str<S>(v: &Option<Arc<str>>, s: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    use serde::Serialize;
+
+    v.as_ref().map(|v| &**v).serialize(s)
+}
+
+fn serialize_arc_str<S>(v: &Arc<str>, s: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    s.serialize_str(v)
+}
+
 async fn api_vidstreaming_id(
     State(app_state): State<Arc<AppState>>,
     Path(id): Path<NonZeroU64>,
@@ -199,11 +253,41 @@ async fn api_vidstreaming_id(
         });
 
     match result {
-        Ok(result) => axum::response::Sse::new(result.map(|event| {
-            Result::<_, anyhow::Error>::Ok(
-                axum::response::sse::Event::default().data(format!("{event:?}")),
-            )
-        }))
+        Ok(result) => Sse::new(
+            result
+                .map(|event| match event {
+                    StateUpdateItem::State(state) => {
+                        let state = state.get_inner();
+
+                        let state = ApiVidstreamingDownloadState {
+                            info: state.info.clone(),
+                            progress: state.progress,
+                            error: state.error.as_ref().map(ApiError::from),
+                        };
+
+                        sse::Event::default().json_data(state)
+                    }
+                    StateUpdateItem::Update(update) => match update {
+                        VidstreamingDownloadStateUpdate::Info { info } => {
+                            let update = ApiVidstreamingDownloadStateUpdate::Info { info };
+                            sse::Event::default().json_data(update)
+                        }
+                        VidstreamingDownloadStateUpdate::Progress { progress } => {
+                            let update = ApiVidstreamingDownloadStateUpdate::Progress { progress };
+                            sse::Event::default().json_data(update)
+                        }
+                        VidstreamingDownloadStateUpdate::Error { error } => {
+                            let update = ApiVidstreamingDownloadStateUpdate::Error {
+                                error: ApiError::from(&error),
+                            };
+                            sse::Event::default().json_data(update)
+                        }
+                    },
+                })
+                .chain(tokio_stream::once(
+                    sse::Event::default().event("close").json_data("close"),
+                )),
+        )
         .into_response(),
         Err(error) => (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response(),
     }

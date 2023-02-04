@@ -32,11 +32,33 @@ class Api {
     return json;
   }
 
-  async getVidstreamingEpisode(id) {
-    let response = await fetch(`/api/vidstreaming/${id}`);
-    let json = await response.json();
-    if (response.status != 200) throw convertToError(json);
-    return json;
+  async *downloadVidstreamingEpisode(id) {
+    let source = new EventSource(`/api/vidstreaming/${id}`);
+    let store = {
+      resolve: () => {},
+      reejct: () => {},
+    };
+    let shouldExit = false;
+
+    source.addEventListener("message", (event) => {
+      let data = JSON.parse(event.data);
+      store.resolve(data);
+    });
+    source.addEventListener("error", (event) => {
+      console.error(event);
+      store.reject(event);
+    });
+    source.addEventListener("close", (event) => {
+      shouldExit = true;
+      source.close();
+    });
+
+    while (!shouldExit) {
+      yield new Promise((resolve, reject) => {
+        store.resolve = resolve;
+        store.reject = reject;
+      });
+    }
   }
 }
 

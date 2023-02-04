@@ -19,7 +19,7 @@ pub fn state_update_channel<S>(
     state: S,
 ) -> (StateUpdateTx<S, S::Update>, StateUpdateRx<S, S::Update>)
 where
-    S: State,
+    S: StateChannelState,
 {
     let (tx, rx) = tokio::sync::broadcast::channel(capacity);
 
@@ -37,7 +37,7 @@ where
 }
 
 /// A state that is changed via updates.
-pub trait State: Clone {
+pub trait StateChannelState: Clone {
     /// The update that can be applied to this state.
     type Update: Clone;
 
@@ -59,10 +59,12 @@ pub struct StateUpdateTx<S, U> {
 
 impl<S, U> StateUpdateTx<S, U>
 where
-    S: State<Update = U>,
+    S: StateChannelState<Update = U>,
 {
     /// Send an update and apply it to the state.
-    pub fn send(&self, update: U) {
+    pub fn send(&self, update: impl Into<U>) {
+        let update = update.into();
+
         self.state.apply_update(&update);
 
         // TODO: How to handle no receivers?
@@ -158,7 +160,7 @@ pub struct StateUpdateStream<S, U> {
 
 impl<S, U> Stream for StateUpdateStream<S, U>
 where
-    S: State<Update = U> + Send + 'static,
+    S: StateChannelState<Update = U> + Send + 'static,
     U: Clone + Send + 'static,
 {
     type Item = StateUpdateItem<S, U>;

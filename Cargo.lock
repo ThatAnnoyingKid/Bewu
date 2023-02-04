@@ -180,6 +180,7 @@ dependencies = [
 name = "bewu-util"
 version = "0.0.0"
 dependencies = [
+ "anyhow",
  "tokio",
  "tokio-stream",
  "tokio-util",
