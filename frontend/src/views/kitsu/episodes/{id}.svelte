@@ -5,27 +5,28 @@
   export let params = {};
 
   let episodeId = params.id;
-
-  let videoUp = false;
-
-  async function performVidstreamingDownload() {
-    for await (const event of Api.downloadVidstreamingEpisode(episodeId)) {
-      console.log(event);
-    }
-  }
+  
+  let downloadState = null;
 
   let kitsuEpisodeData = Api.getKitsuEpisode(episodeId);
-  let vidstreamingEpisodeDownload = performVidstreamingDownload();
-
-  let episodeData = Promise.all([kitsuEpisodeData]).then((result) => {
-    requestAnimationFrame(() => {
-      if (!videoUp) {
-        videojs(document.querySelector(".video-js"));
-        videoUp = true;
+  let vidstreamingEpisodeData = Api.getVidstreamingEpisode(episodeId);
+  
+  async function performVidstreamingDownload() {
+    downloadState = {};
+    for await (const event of Api.downloadVidstreamingEpisode(episodeId)) {
+      switch(event.type) {
+        case 'progress':
+            downloadState.progress = event.progress;
+            break;
+        default:
+            console.log(event);
       }
-    });
-    return result;
-  });
+    }
+    downloadState = null;
+    vidstreamingEpisodeData = Api.getVidstreamingEpisode(episodeId);
+  }
+
+  let episodeData = Promise.all([kitsuEpisodeData, vidstreamingEpisodeData]);
 
   /*
   function myFunction() {
@@ -37,17 +38,30 @@
 <div class="container">
   {#await episodeData}
     <p>Loading...</p>
-  {:then episodeData}
-    <h1>{episodeData[0].title || `Episode ${episodeId}`}</h1>
-    <video-js
-      controls
-      poster={episodeData[0].thumbnail_original}
-      width="1920"
-      height="1080"
-      class="video-js"
-    >
-      <source src={episodeData[1].best_source} />
-    </video-js>
+  {:then kitsuEpisodeData}
+    <h1>{kitsuEpisodeData.title || `Episode ${episodeId}`}</h1>
+    {#await vidstreamingEpisodeData}
+      Loading...
+    {:then vidstreamingEpisodeData}
+      {#if vidstreamingEpisodeData.url !== null}
+        <video
+          controls
+          poster={kitsuEpisodeData.thumbnail_original}
+          width="1920"
+          height="1080"
+          src={vidstreamingEpisodeData.url}
+        />
+      {:else}
+        {#if downloadState === null}
+            Video is not downloaded: 
+            <button on:click={performVidstreamingDownload}>
+                Download
+            </button>
+        {:else}
+            Progress: {downloadState.progress}
+        {/if}
+      {/if}
+    {/await}
   {/await}
   <!--
   <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
@@ -63,15 +77,9 @@
     margin: 1em;
   }
 
-  /*
-    video {
-        width: auto;
-        height: 50vh;
-    }
-    */
-
-  video-js {
-    width: 70%;
-    height: 50vh;
+  video {
+    width: 100%;
+    height: auto;
+    max-height: 70vh;
   }
 </style>

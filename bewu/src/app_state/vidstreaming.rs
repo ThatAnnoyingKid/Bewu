@@ -12,6 +12,11 @@ use tracing::error;
 use tracing::trace;
 
 #[derive(Debug)]
+pub struct VidstreamingEpisode {
+    pub path: Option<String>,
+}
+
+#[derive(Debug)]
 pub enum VidstreamingTaskMessage {
     Close {
         tx: tokio::sync::oneshot::Sender<()>,
@@ -23,6 +28,12 @@ pub enum VidstreamingTaskMessage {
         tx: tokio::sync::oneshot::Sender<
             anyhow::Result<bewu_util::StateUpdateRx<CloneDownloadState, DownloadStateUpdate>>,
         >,
+    },
+    GetEpisode {
+        anime_slug: Box<str>,
+        episode_number: u32,
+
+        tx: tokio::sync::oneshot::Sender<anyhow::Result<VidstreamingEpisode>>,
     },
 }
 
@@ -69,6 +80,22 @@ impl VidstreamingTask {
             .await?;
 
         Ok(rx.await??.into_stream())
+    }
+
+    pub async fn get_episode(
+        &self,
+        anime_slug: &str,
+        episode_number: u32,
+    ) -> anyhow::Result<VidstreamingEpisode> {
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        self.tx
+            .send(VidstreamingTaskMessage::GetEpisode {
+                anime_slug: anime_slug.into(),
+                episode_number,
+                tx,
+            })
+            .await?;
+        rx.await?
     }
 
     pub async fn join(&self) -> anyhow::Result<()> {
@@ -131,6 +158,27 @@ async fn vidstreaming_task_impl(
                     download_task = Some(AbortJoinHandle::new(handle));
 
                     Ok(rx)
+                }
+                .await;
+
+                let _ = tx.send(result).is_ok();
+            }
+            VidstreamingTaskMessage::GetEpisode {
+                anime_slug,
+                episode_number,
+                tx,
+            } => {
+                let result = async {
+                    let file_name = get_episode_file_name(&anime_slug, episode_number);
+                    let path = path.join(&file_name);
+
+                    if bewu_util::try_exists(&path).await? {
+                        Ok(VidstreamingEpisode {
+                            path: Some(file_name),
+                        })
+                    } else {
+                        Ok(VidstreamingEpisode { path: None })
+                    }
                 }
                 .await;
 
@@ -231,6 +279,10 @@ impl bewu_util::StateChannelState for CloneDownloadState {
     }
 }
 
+fn get_episode_file_name(anime_slug: &str, episode_number: u32) -> String {
+    format!("{anime_slug}-episode-{episode_number}.mp4")
+}
+
 async fn download_task_impl(
     client: vidstreaming::Client,
     anime_slug: Box<str>,
@@ -242,7 +294,7 @@ async fn download_task_impl(
     let url = format!("https://gogohd.net/videos/{anime_slug}-episode-{episode_number}");
     debug!("using vidstreaming url \"{url}\"");
 
-    let file_name = format!("{anime_slug}-episode-{episode_number}.mp4");
+    let file_name = get_episode_file_name(&anime_slug, episode_number);
     let out_path = path.join(file_name);
     match bewu_util::try_exists(&out_path)
         .await

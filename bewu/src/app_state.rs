@@ -14,6 +14,7 @@ use crate::util::AsyncLockFile;
 
 pub use self::vidstreaming::CloneDownloadState as VidstreamingDownloadState;
 pub use self::vidstreaming::DownloadStateUpdate as VidstreamingDownloadStateUpdate;
+pub use self::vidstreaming::VidstreamingEpisode;
 use crate::util::AbortJoinHandle;
 use anyhow::ensure;
 use anyhow::Context;
@@ -23,13 +24,6 @@ use std::sync::Arc;
 use std::time::SystemTime;
 use tokio_stream::Stream;
 use tracing::debug;
-use url::Url;
-
-#[derive(Debug)]
-pub struct VidstreamingEpisode {
-    /// The url of the best source
-    pub best_source: Url,
-}
 
 /// The app state
 ///
@@ -320,8 +314,19 @@ impl AppState {
         Ok(episode)
     }
 
-    /// Get a vidstreaming episode.
     pub async fn get_vidstreaming_episode(
+        &self,
+        id: NonZeroU64,
+    ) -> anyhow::Result<VidstreamingEpisode> {
+        let episode = self.get_kitsu_episode(id).await?;
+        let anime = self.get_kitsu_anime(episode.anime_id).await?;
+        self.vidstreaming_task
+            .get_episode(anime.slug.as_str(), episode.number)
+            .await
+    }
+
+    /// Start a vidstreaming episode download.
+    pub async fn start_vidstreaming_episode_download(
         &self,
         id: NonZeroU64,
     ) -> anyhow::Result<

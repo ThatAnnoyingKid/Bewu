@@ -22,6 +22,10 @@ pub fn routes(config: &Config, app_state: Arc<AppState>) -> anyhow::Result<Route
         .not_found_service(tower::service_fn(not_found_error));
     let serve_dir = get_service(serve_dir).handle_error(server_error);
 
+    let data_serve_dir =
+        ServeDir::new(&config.data_directory).not_found_service(tower::service_fn(not_found_error));
+    let data_serve_dir = get_service(data_serve_dir).handle_error(server_error);
+
     let trace_layer = TraceLayer::new_for_http()
         .make_span_with(
             DefaultMakeSpan::new()
@@ -34,6 +38,7 @@ pub fn routes(config: &Config, app_state: Arc<AppState>) -> anyhow::Result<Route
 
     let routes = Router::new()
         .nest("/api", self::api::routes().with_state(app_state))
+        .nest_service("/data", data_serve_dir)
         .fallback_service(serve_dir)
         .layer(trace_layer);
     Ok(routes)

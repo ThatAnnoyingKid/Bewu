@@ -16,7 +16,6 @@ use std::num::NonZeroU64;
 use std::sync::Arc;
 use tokio_stream::StreamExt;
 use tracing::error;
-use url::Url;
 
 #[derive(Debug, serde::Serialize)]
 struct ApiError {
@@ -53,6 +52,10 @@ pub fn routes() -> Router<Arc<AppState>> {
         )
         .route("/kitsu/episodes/:id", get(api_kitsu_episodes_id))
         .route("/vidstreaming/:id", get(api_vidstreaming_id))
+        .route(
+            "/vidstreaming/:id/download",
+            get(api_vidstreaming_id_download),
+        )
 }
 
 async fn api_anime_get(State(_app_state): State<Arc<AppState>>) -> impl IntoResponse {
@@ -198,7 +201,30 @@ async fn api_kitsu_episodes_id(
 
 #[derive(Debug, serde::Serialize)]
 struct ApiVidstreamingEpisode {
-    best_source: Url,
+    url: Option<String>,
+}
+
+async fn api_vidstreaming_id(
+    State(app_state): State<Arc<AppState>>,
+    Path(id): Path<NonZeroU64>,
+) -> impl IntoResponse {
+    let result = app_state
+        .get_vidstreaming_episode(id)
+        .await
+        .map(|episode| ApiVidstreamingEpisode {
+            url: episode
+                .path
+                .map(|path| format!("/data/vidstreaming/sub/{path}")),
+        })
+        .map_err(|error| {
+            error!("{error:?}");
+            ApiError::from_anyhow(error)
+        });
+
+    match result {
+        Ok(result) => (StatusCode::OK, Json(result)).into_response(),
+        Err(error) => (StatusCode::INTERNAL_SERVER_ERROR, Json(error)).into_response(),
+    }
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -240,12 +266,12 @@ where
     s.serialize_str(v)
 }
 
-async fn api_vidstreaming_id(
+async fn api_vidstreaming_id_download(
     State(app_state): State<Arc<AppState>>,
     Path(id): Path<NonZeroU64>,
 ) -> impl IntoResponse {
     let result = app_state
-        .get_vidstreaming_episode(id)
+        .start_vidstreaming_episode_download(id)
         .await
         .map_err(|error| {
             error!("{error:?}");
