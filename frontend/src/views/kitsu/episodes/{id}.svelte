@@ -26,8 +26,6 @@
     vidstreamingEpisodeData = Api.getVidstreamingEpisode(episodeId);
   }
 
-  let episodeData = Promise.all([kitsuEpisodeData, vidstreamingEpisodeData]);
-
   /*
   function myFunction() {
     alert("YOU'RE DONE BUCKO!!!");
@@ -36,7 +34,7 @@
 </script>
 
 <div class="container">
-  {#await episodeData}
+  {#await kitsuEpisodeData}
     <p>Loading...</p>
   {:then kitsuEpisodeData}
     <h1>{kitsuEpisodeData.title || `Episode ${episodeId}`}</h1>
@@ -44,6 +42,7 @@
       Loading...
     {:then vidstreamingEpisodeData}
       {#if vidstreamingEpisodeData.url !== null}
+        <!-- svelte-ignore a11y-media-has-caption -->
         <video
           controls
           poster={kitsuEpisodeData.thumbnail_original}
