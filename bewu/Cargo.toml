@@ -9,12 +9,12 @@ anyhow = "1.0.69"
 async-rusqlite = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs", features = [ "bundled" ] }
 axum = "0.6.4"
 bewu-util = { path = "../lib/bewu-util-rs", features = ["try-exists", "state-update-channel", "parse-ffmpeg-time"] }
-fd-lock = "3.0.9"
+fd-lock = "3.0.10"
 kitsu = { path = "../lib/kitsu-rs", features = [ "rustls-tls" ], default-features = false }
 nd-util = { git = "https://github.com/nathaniel-daniel/nd-util-rs" }
 pikadick-util = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs", features = [ "request_map", "arc_anyhow_error" ] }
 serde = { version = "1.0.152", features = ["derive"] }
-serde_json = "1.0.91"
+serde_json = "1.0.93"
 tokio = { version = "1.25.0", features = [ "rt", "rt-multi-thread", "signal", "macros" ] }
 tokio-ffmpeg-cli = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs" }
 tokio-stream = "0.1.11"
