@@ -1,8 +1,6 @@
-use crate::try_parse_ext_target_duration_tag;
 use crate::Error;
+use crate::Tag;
 use crate::EXT_INF_TAG;
-use crate::EXT_X_KEY_TAG;
-use crate::EXT_X_MEDIA_SEQUENCE_TAG;
 use crate::EXT_X_TARGET_DURATION_TAG;
 use crate::EXT_X_VERSION_TAG;
 use http::Uri;
@@ -52,99 +50,39 @@ impl std::str::FromStr for MediaPlaylist {
 
             if let Some(line) = line.strip_prefix('#') {
                 if line.starts_with("EXT") {
-                    if let Some(duration) = try_parse_ext_target_duration_tag(line) {
-                        let duration = duration?;
+                    let tag: Tag = line.parse::<Tag>()?;
 
-                        if target_duration.is_some() {
-                            return Err(Error::DuplicateTag {
-                                tag: EXT_X_TARGET_DURATION_TAG,
-                            });
-                        }
-
-                        target_duration = Some(duration);
-                    } else if let Some(line) = line.strip_prefix(EXT_INF_TAG) {
-                        let line = line
-                            .strip_prefix(':')
-                            .ok_or(Error::TagMissingColon { tag: EXT_INF_TAG })?;
-                        let (duration, title) =
-                            line.split_once(',').ok_or(Error::ExtInfTagMissingComma)?;
-                        let duration = duration
-                            .parse()
-                            .map(Duration::from_secs_f64)
-                            .map_err(|error| Error::ExtInfTagInvalidDuration { error })?;
-
-                        // Behavior of duped EXTINF tags is unspecified, use the latest one.
-
-                        ext_inf_tag = Some((duration, title))
-                    } else if let Some(line) = line.strip_prefix(EXT_X_VERSION_TAG) {
-                        let line = line.strip_prefix(':').ok_or(Error::TagMissingColon {
-                            tag: EXT_X_VERSION_TAG,
-                        })?;
-                        let parsed: u8 = line
-                            .parse()
-                            .map_err(|error| Error::ExtXVersionTagInvalidVersion { error })?;
-
-                        if version.is_some() {
-                            return Err(Error::DuplicateTag {
-                                tag: EXT_X_VERSION_TAG,
-                            });
-                        }
-
-                        version = Some(parsed);
-                    } else if let Some(line) = line.strip_prefix(EXT_X_MEDIA_SEQUENCE_TAG) {
-                        let line = line.strip_prefix(':').ok_or(Error::TagMissingColon {
-                            tag: EXT_X_MEDIA_SEQUENCE_TAG,
-                        })?;
-                        let parsed: u64 = line.parse().map_err(|error| {
-                            Error::ExtXMediaSequenceTagInvalidSequence { error }
-                        })?;
-
-                        // TODO: Disallow setting after first segment?
-                        // TODO: Disallow dupes?
-                        media_sequence_number = Some(parsed);
-                    } else if let Some(line) = line.strip_prefix(EXT_X_KEY_TAG) {
-                        let line = line.strip_prefix(':').ok_or(Error::TagMissingColon {
-                            tag: EXT_X_MEDIA_SEQUENCE_TAG,
-                        })?;
-
-                        let mut method = None;
-                        let mut uri = None;
-                        for pair in line.split(',') {
-                            let (name, value) = pair
-                                .split_once('=')
-                                .ok_or(Error::AttributeValuePairMissingEquals)?;
-
-                            // TODO: Verify proper attributes are supplied with respect to current attribute state
-                            match name {
-                                "METHOD" => {
-                                    if method.is_some() {
-                                        return Err(Error::DuplicateAttribute {
-                                            name: name.into(),
-                                        });
-                                    }
-
-                                    method = Some(value);
-                                }
-                                "URI" => {
-                                    if uri.is_some() {
-                                        return Err(Error::DuplicateAttribute {
-                                            name: name.into(),
-                                        });
-                                    }
-                                    uri = Some(value);
-                                }
-                                _ => {
-                                    return Err(Error::UnknownAttributeValuePair {
-                                        name: name.into(),
-                                        value: value.into(),
-                                    });
-                                }
+                    match tag {
+                        Tag::ExtXTargetDuration { duration } => {
+                            if target_duration.is_some() {
+                                return Err(Error::DuplicateTag {
+                                    tag: EXT_X_TARGET_DURATION_TAG,
+                                });
                             }
-                        }
 
-                        // TODO: Apply encryption data to media segments individually
-                    } else {
-                        return Err(Error::UnknownTag { tag: line.into() });
+                            target_duration = Some(duration);
+                        }
+                        Tag::ExtInf { duration, title } => {
+                            // Behavior of duped EXTINF tags is unspecified, use the latest one.
+                            ext_inf_tag = Some((duration, title))
+                        }
+                        Tag::ExtXVersion { version: parsed } => {
+                            if version.is_some() {
+                                return Err(Error::DuplicateTag {
+                                    tag: EXT_X_VERSION_TAG,
+                                });
+                            }
+
+                            version = Some(parsed);
+                        }
+                        Tag::ExtXMediaSequence { number } => {
+                            // TODO: Disallow setting after first segment?
+                            // TODO: Disallow dupes?
+                            media_sequence_number = Some(number);
+                        }
+                        Tag::ExtXKey {} => {
+                            // TODO: Apply encryption data to media segments individually
+                        }
                     }
                 }
             } else {
@@ -155,7 +93,7 @@ impl std::str::FromStr for MediaPlaylist {
 
                 media_segments.push(MediaSegment {
                     duration,
-                    title: title.into(),
+                    title,
                     uri,
                 })
             }
@@ -183,7 +121,7 @@ pub struct MediaSegment {
     pub duration: Duration,
 
     /// The title
-    pub title: Box<str>,
+    pub title: Option<Box<str>>,
 
     /// The uri
     pub uri: Uri,
@@ -222,17 +160,17 @@ mod test {
                 == [
                     MediaSegment {
                         duration: Duration::from_secs_f64(9.009),
-                        title: "".into(),
+                        title: None,
                         uri: Uri::from_static("http://media.example.com/first.ts"),
                     },
                     MediaSegment {
                         duration: Duration::from_secs_f64(9.009),
-                        title: "".into(),
+                        title: None,
                         uri: Uri::from_static("http://media.example.com/second.ts"),
                     },
                     MediaSegment {
                         duration: Duration::from_secs_f64(3.003),
-                        title: "".into(),
+                        title: None,
                         uri: Uri::from_static("http://media.example.com/third.ts"),
                     }
                 ]
