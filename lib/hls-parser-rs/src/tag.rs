@@ -1,9 +1,14 @@
 use crate::EXT_INF_TAG;
 use crate::EXT_X_KEY_TAG;
 use crate::EXT_X_MEDIA_SEQUENCE_TAG;
+use crate::EXT_X_STREAM_INF_TAG;
 use crate::EXT_X_TARGET_DURATION_TAG;
 use crate::EXT_X_VERSION_TAG;
 use std::time::Duration;
+
+const BANDWIDTH_ATTR: &str = "BANDWIDTH";
+const AVERAGE_BANDWIDTH_ATTR: &str = "AVERAGE-BANDWIDTH";
+const CODECS_ATTR: &str = "CODECS";
 
 /// An error that may occur while parsing a tag
 #[derive(Debug, thiserror::Error)]
@@ -38,7 +43,7 @@ pub enum ParseTagError {
 
     /// The tag is unknown
     #[error("unknown tag")]
-    Unknown,
+    Unknown { line: Box<str> },
 
     /// An attribute was duplicated
     #[error("duplicate attribute \"{name}\"")]
@@ -55,6 +60,13 @@ pub enum ParseTagError {
 
         /// The value of the attribute
         value: Box<str>,
+    },
+
+    /// Missing an attribute
+    #[error("missing attribute \"{name}\"")]
+    MissingAttribute {
+        /// The name of the attribute
+        name: &'static str,
     },
 }
 
@@ -91,6 +103,15 @@ pub(crate) enum Tag {
 
     /// The EXT-X-KEY tag
     ExtXKey {},
+
+    /// The EXT-X-STREAM-INF tag
+    ExtXStreamInf {
+        /// The stream bandwidth
+        bandwidth: u64,
+
+        /// The average bandwidth
+        average_bandwidth: Option<u64>,
+    },
 }
 
 impl std::str::FromStr for Tag {
@@ -136,6 +157,7 @@ impl std::str::FromStr for Tag {
             let mut method = None;
             let mut uri = None;
             for pair in line.split(',') {
+                // TODO: Verify K/V
                 let (name, value) = pair.split_once('=').ok_or(ParseTagError::MissingEquals)?;
 
                 // TODO: Verify proper attributes are supplied with respect to current attribute state
@@ -163,8 +185,55 @@ impl std::str::FromStr for Tag {
             }
 
             Ok(Self::ExtXKey {})
+        } else if let Some(line) = line.strip_prefix(EXT_X_STREAM_INF_TAG) {
+            let line = line.strip_prefix(':').ok_or(ParseTagError::MissingColon)?;
+
+            let mut bandwidth = None;
+            let mut average_bandwidth = None;
+            for pair in line.split(',') {
+                // TODO: Verify K/V
+                let (name, value) = pair.split_once('=').ok_or(ParseTagError::MissingEquals)?;
+                match name {
+                    BANDWIDTH_ATTR => {
+                        let value: u64 = value
+                            .parse()
+                            .map_err(|error| ParseTagError::ParseInt { error })?;
+                        if bandwidth.is_some() {
+                            return Err(ParseTagError::DuplicateAttribute { name: name.into() });
+                        }
+                        bandwidth = Some(value);
+                    }
+                    AVERAGE_BANDWIDTH_ATTR => {
+                        let value: u64 = value
+                            .parse()
+                            .map_err(|error| ParseTagError::ParseInt { error })?;
+                        if average_bandwidth.is_some() {
+                            return Err(ParseTagError::DuplicateAttribute { name: name.into() });
+                        }
+                        average_bandwidth = Some(value);
+                    }
+                    CODECS_ATTR => {
+                        // TODO: Parse Codec
+                    }
+                    _ => {
+                        return Err(ParseTagError::UnknownAttributeValuePair {
+                            name: name.into(),
+                            value: value.into(),
+                        });
+                    }
+                }
+            }
+
+            let bandwidth = bandwidth.ok_or(ParseTagError::MissingAttribute {
+                name: BANDWIDTH_ATTR,
+            })?;
+
+            Ok(Self::ExtXStreamInf {
+                bandwidth,
+                average_bandwidth,
+            })
         } else {
-            Err(ParseTagError::Unknown)
+            Err(ParseTagError::Unknown { line: line.into() })
         }
     }
 }

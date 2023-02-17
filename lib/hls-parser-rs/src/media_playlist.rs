@@ -1,6 +1,7 @@
 use crate::Error;
 use crate::Tag;
 use crate::EXT_INF_TAG;
+use crate::EXT_M3U_TAG;
 use crate::EXT_X_TARGET_DURATION_TAG;
 use crate::EXT_X_VERSION_TAG;
 use http::Uri;
@@ -31,7 +32,7 @@ impl std::str::FromStr for MediaPlaylist {
         let mut lines = input.lines();
 
         let start_tag = lines.next().ok_or(Error::UnexpectedEof)?;
-        if start_tag != "#EXTM3U" {
+        if start_tag != EXT_M3U_TAG {
             return Err(Error::InvalidStartTag {
                 tag: start_tag.into(),
             });
@@ -82,6 +83,9 @@ impl std::str::FromStr for MediaPlaylist {
                         }
                         Tag::ExtXKey {} => {
                             // TODO: Apply encryption data to media segments individually
+                        }
+                        _ => {
+                            return Err(Error::InvalidTag);
                         }
                     }
                 }
