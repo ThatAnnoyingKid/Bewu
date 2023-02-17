@@ -674,6 +674,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "hls-parser"
+version = "0.0.0"
+dependencies = [
+ "http",
+ "thiserror",
+]
+
+[[package]]
 name = "html5ever"
 version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
