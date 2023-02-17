@@ -17,6 +17,45 @@ const EXT_X_VERSION_TAG: &str = "EXT-X-VERSION";
 const EXT_X_MEDIA_SEQUENCE_TAG: &str = "EXT-X-MEDIA-SEQUENCE";
 const EXT_X_KEY_TAG: &str = "EXT-X-KEY";
 const EXT_X_STREAM_INF_TAG: &str = "EXT-X-STREAM-INF";
+const EXT_X_ALLOW_CACHE_TAG: &str = "EXT-X-ALLOW-CACHE";
+const EXT_X_PLAYLIST_TYPE_TAG: &str = "EXT-X-PLAYLIST-TYPE";
+const EXT_X_ENDLIST_TAG: &str = "EXT-X-ENDLIST";
+
+/// Failed to parse a playlist type
+#[derive(Debug)]
+pub struct ParsePlaylistTypeError(pub Box<str>);
+
+impl std::fmt::Display for ParsePlaylistTypeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "\"{}\" is an invalid playlist type", self.0)
+    }
+}
+
+impl std::error::Error for ParsePlaylistTypeError {}
+
+/// The playlist type
+#[derive(Debug)]
+pub enum PlaylistType {
+    /// The playlist cannot change
+    Vod,
+
+    /// The playlist is append only
+    Event,
+}
+
+impl std::str::FromStr for PlaylistType {
+    type Err = ParsePlaylistTypeError;
+
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        match input {
+            "VOD" => Ok(PlaylistType::Vod),
+            "EVENT" => Ok(PlaylistType::Event),
+            _ => {
+                return Err(ParsePlaylistTypeError(input.into()));
+            }
+        }
+    }
+}
 
 /// The library error type
 #[derive(Debug, thiserror::Error)]

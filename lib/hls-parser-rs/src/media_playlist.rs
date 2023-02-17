@@ -1,4 +1,5 @@
 use crate::Error;
+use crate::PlaylistType;
 use crate::Tag;
 use crate::EXT_INF_TAG;
 use crate::EXT_M3U_TAG;
@@ -23,6 +24,9 @@ pub struct MediaPlaylist {
     ///
     /// If this is `None`, it can be assumed to be 0.
     pub media_sequence_number: Option<u64>,
+
+    /// The playlist type
+    pub playlist_type: Option<PlaylistType>,
 }
 
 impl std::str::FromStr for MediaPlaylist {
@@ -41,6 +45,7 @@ impl std::str::FromStr for MediaPlaylist {
         let mut target_duration = None;
         let mut version = None;
         let mut media_sequence_number = None;
+        let mut playlist_type = None;
 
         let mut ext_inf_tag = None;
         let mut media_segments = Vec::with_capacity(16);
@@ -84,6 +89,20 @@ impl std::str::FromStr for MediaPlaylist {
                         Tag::ExtXKey {} => {
                             // TODO: Apply encryption data to media segments individually
                         }
+                        Tag::ExtXAllowCache {} => {
+                            // This was removed in spec, but is still allowed/may appear
+                        }
+                        Tag::ExtXPlaylistType {
+                            playlist_type: parsed,
+                        } => {
+                            // Behavior of duped EXT-X-PLAYLIST-TYPE tags is unspecified, use the latest one.
+                            playlist_type = Some(parsed);
+                        }
+                        Tag::ExtXEndList => {
+                            // TODO: Investigate more
+                            // I interpret this as meaning that the server will stop updating the playlist,
+                            // not that all future entries are invalid.
+                        }
                         _ => {
                             return Err(Error::InvalidTag);
                         }
@@ -114,6 +133,7 @@ impl std::str::FromStr for MediaPlaylist {
             media_segments,
             version,
             media_sequence_number,
+            playlist_type,
         })
     }
 }
@@ -153,6 +173,11 @@ mod test {
     const PLAYLIST_WITH_ENCRYPTED_MEDIA_SEGMENTS: &str = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/test_data/playlist-with-encrypted-media-segments.m3u8"
+    ));
+
+    const REAL_MEDIA_PLAYLIST_1: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/test_data/real-media-playlist-1.m3u8"
     ));
 
     #[test]
@@ -200,6 +225,14 @@ mod test {
         let playlist: MediaPlaylist = PLAYLIST_WITH_ENCRYPTED_MEDIA_SEGMENTS
             .parse()
             .expect("failed to parse");
+        assert!(playlist.version == Some(3));
+
+        dbg!(&playlist);
+    }
+
+    #[test]
+    fn parse_real_media_playlist_1() {
+        let playlist: MediaPlaylist = REAL_MEDIA_PLAYLIST_1.parse().expect("failed to parse");
         assert!(playlist.version == Some(3));
 
         dbg!(&playlist);

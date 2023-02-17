@@ -1,6 +1,11 @@
+use crate::ParsePlaylistTypeError;
+use crate::PlaylistType;
 use crate::EXT_INF_TAG;
+use crate::EXT_X_ALLOW_CACHE_TAG;
+use crate::EXT_X_ENDLIST_TAG;
 use crate::EXT_X_KEY_TAG;
 use crate::EXT_X_MEDIA_SEQUENCE_TAG;
+use crate::EXT_X_PLAYLIST_TYPE_TAG;
 use crate::EXT_X_STREAM_INF_TAG;
 use crate::EXT_X_TARGET_DURATION_TAG;
 use crate::EXT_X_VERSION_TAG;
@@ -85,6 +90,13 @@ pub enum ParseTagError {
         #[from]
         error: AttributeListParseError,
     },
+
+    /// Invalid playlist type
+    #[error("invalid playlist type")]
+    InvalidPlaylistType {
+        #[from]
+        error: ParsePlaylistTypeError,
+    },
 }
 
 /// A tag
@@ -135,6 +147,15 @@ pub(crate) enum Tag {
         /// The frame rate
         frame_rate: Option<f64>,
     },
+
+    /// The EXT-X-ALLOW_CACHE tag
+    ExtXAllowCache {},
+
+    /// The EXT-X-PLAYLIST-TYPE tag
+    ExtXPlaylistType { playlist_type: PlaylistType },
+
+    /// The EXT-X-ENDLIST tag
+    ExtXEndList,
 }
 
 impl std::str::FromStr for Tag {
@@ -282,26 +303,6 @@ impl std::str::FromStr for Tag {
                 }
             }
 
-            /*
-            let mut input = line;
-            while let Some((pair, rest)) = input.split_once(',') {
-                // TODO: Verify K/V
-                let (name, value) = pair.split_once('=').ok_or(ParseTagError::MissingEquals)?;
-                input = match name {
-
-
-                     rest,
-
-                    _ => {
-                        return Err(ParseTagError::UnknownAttributeValuePair {
-                            name: name.into(),
-                            value: value.into(),
-                        });
-                    }
-                }
-            }
-            */
-
             let bandwidth = bandwidth.ok_or(ParseTagError::MissingAttribute {
                 name: BANDWIDTH_ATTR,
             })?;
@@ -312,6 +313,17 @@ impl std::str::FromStr for Tag {
                 codecs,
                 frame_rate,
             })
+        } else if let Some(_line) = line.strip_prefix(EXT_X_ALLOW_CACHE_TAG) {
+            // TODO: This was removed in the spec
+            // Add back if needed
+            Ok(Self::ExtXAllowCache {})
+        } else if let Some(line) = line.strip_prefix(EXT_X_PLAYLIST_TYPE_TAG) {
+            let line = line.strip_prefix(':').ok_or(ParseTagError::MissingColon)?;
+            let playlist_type: PlaylistType = line.parse()?;
+
+            Ok(Self::ExtXPlaylistType { playlist_type })
+        } else if let Some(_line) = line.strip_prefix(EXT_X_ENDLIST_TAG) {
+            Ok(Self::ExtXEndList)
         } else {
             Err(ParseTagError::Unknown { line: line.into() })
         }
@@ -550,40 +562,3 @@ impl<'a> AttributeListParser<'a> {
 fn is_valid_attribute_key_char(c: char) -> bool {
     matches!(c,  'A'..='Z' | '0'..='9' | '-')
 }
-
-/*
-impl<'a> Iterator for ParseAttributeListIter<'a> {
-    type Item = Result<(&'a str, &'a str), ParseAttributeListError>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-
-
-
-
-
-
-        match self
-            .iter
-            .next()
-            .ok_or(ParseAttributeListError::UnexpectedEnd)
-        {
-            Ok((_, '=')) => {}
-            Ok((_, c)) => {
-                return Some(Err(ParseAttributeListError::UnexpectedChar {
-                    expected: '=',
-                    actual: c,
-                }));
-            }
-            Err(e) => {
-                return Some(Err(e));
-            }
-        };
-
-        dbg!(self.iter.peek());
-
-        todo!("{:#?}", &self.input[key_start_i..key_end_i]);
-
-        None
-    }
-}
-*/
