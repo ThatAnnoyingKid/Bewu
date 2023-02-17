@@ -65,11 +65,25 @@ pub enum ParseTagError {
         value: Box<str>,
     },
 
+    /// An unknown attribute was supplied
+    #[error("unknown attribute \"{name}\"")]
+    UnknownAttribute {
+        /// The name of the attribute
+        name: Box<str>,
+    },
+
     /// Missing an attribute
     #[error("missing attribute \"{name}\"")]
     MissingAttribute {
         /// The name of the attribute
         name: &'static str,
+    },
+
+    /// Failed to parse an attribute list
+    #[error("failed to parse attribute list")]
+    AttributeListParse {
+        #[from]
+        error: AttributeListParseError,
     },
 }
 
@@ -114,6 +128,9 @@ pub(crate) enum Tag {
 
         /// The average bandwidth
         average_bandwidth: Option<u64>,
+
+        /// The codecs
+        codecs: Option<Vec<Box<str>>>,
 
         /// The frame rate
         frame_rate: Option<f64>,
@@ -196,51 +213,85 @@ impl std::str::FromStr for Tag {
 
             let mut bandwidth = None;
             let mut average_bandwidth = None;
+            let mut codecs = None;
             let mut frame_rate = None;
 
+            let mut parser = AttributeListParser::new(line);
+            loop {
+                let name = parser.parse_name()?;
+                parser.parse_equals()?;
+
+                match name {
+                    BANDWIDTH_ATTR => {
+                        let value: u64 = parser.parse_decimal_integer()?;
+
+                        if bandwidth.is_some() {
+                            return Err(ParseTagError::DuplicateAttribute { name: name.into() });
+                        }
+                        bandwidth = Some(value);
+                    }
+                    AVERAGE_BANDWIDTH_ATTR => {
+                        let value: u64 = parser.parse_decimal_integer()?;
+
+                        if average_bandwidth.is_some() {
+                            return Err(ParseTagError::DuplicateAttribute { name: name.into() });
+                        }
+                        average_bandwidth = Some(value);
+                    }
+                    CODECS_ATTR => {
+                        let value = parser.parse_quoted_string()?;
+
+                        if codecs.is_some() {
+                            return Err(ParseTagError::DuplicateAttribute { name: name.into() });
+                        }
+                        codecs = Some(
+                            value
+                                .split(',')
+                                .map(|s| s.into())
+                                .collect::<Vec<Box<str>>>(),
+                        );
+                    }
+                    PROGRAM_ID_ATTR => {
+                        let _value = parser.parse_decimal_integer()?;
+                        // TODO: This was removed from the spec
+                        // Consider adding if important
+                    }
+                    RESOLUTION_ATTR => {
+                        let _value = parser.parse_decimal_resolution()?;
+                    }
+                    FRAME_RATE_ATTR => {
+                        let value = parser.parse_decimal_floating_point()?;
+
+                        if frame_rate.is_some() {
+                            return Err(ParseTagError::DuplicateAttribute { name: name.into() });
+                        }
+                        frame_rate = Some(value);
+                    }
+                    _ => {
+                        return Err(ParseTagError::UnknownAttribute { name: name.into() });
+                    }
+                }
+                match parser.parse_comma() {
+                    Ok(()) => {}
+                    Err(AttributeListParseError::UnexpectedEnd) => {
+                        break;
+                    }
+                    Err(e) => {
+                        return Err(ParseTagError::from(e));
+                    }
+                }
+            }
+
+            /*
             let mut input = line;
             while let Some((pair, rest)) = input.split_once(',') {
                 // TODO: Verify K/V
                 let (name, value) = pair.split_once('=').ok_or(ParseTagError::MissingEquals)?;
                 input = match name {
-                    BANDWIDTH_ATTR => {
-                        let value: u64 = value
-                            .parse()
-                            .map_err(|error| ParseTagError::ParseInt { error })?;
-                        if bandwidth.is_some() {
-                            return Err(ParseTagError::DuplicateAttribute { name: name.into() });
-                        }
-                        bandwidth = Some(value);
-                        rest
-                    }
-                    AVERAGE_BANDWIDTH_ATTR => {
-                        let value: u64 = value
-                            .parse()
-                            .map_err(|error| ParseTagError::ParseInt { error })?;
-                        if average_bandwidth.is_some() {
-                            return Err(ParseTagError::DuplicateAttribute { name: name.into() });
-                        }
-                        average_bandwidth = Some(value);
-                        rest
-                    }
-                    CODECS_ATTR => {
-                        // TODO: Parse Codec
-                        // todo!("{value}");
-                        rest
-                    }
-                    PROGRAM_ID_ATTR => {
-                        // TODO: This was removed
-                        // Consider adding if important
-                        rest
-                    }
-                    RESOLUTION_ATTR => rest,
-                    FRAME_RATE_ATTR => {
-                        let value: f64 = value
-                            .parse()
-                            .map_err(|error| ParseTagError::ParseFloat { error })?;
-                        frame_rate = Some(value);
-                        rest
-                    }
+
+
+                     rest,
+
                     _ => {
                         return Err(ParseTagError::UnknownAttributeValuePair {
                             name: name.into(),
@@ -249,6 +300,7 @@ impl std::str::FromStr for Tag {
                     }
                 }
             }
+            */
 
             let bandwidth = bandwidth.ok_or(ParseTagError::MissingAttribute {
                 name: BANDWIDTH_ATTR,
@@ -257,6 +309,7 @@ impl std::str::FromStr for Tag {
             Ok(Self::ExtXStreamInf {
                 bandwidth,
                 average_bandwidth,
+                codecs,
                 frame_rate,
             })
         } else {
@@ -265,52 +318,249 @@ impl std::str::FromStr for Tag {
     }
 }
 
-/*
 /// An error that may occur while parsing an attribute list
 #[derive(Debug, thiserror::Error)]
-enum ParseAttributeListError {
+pub enum AttributeListParseError {
     /// Got an unexpected char
-    #[error("unexpected char '{actual}', expected '{expected}'")]
-    UnexpectedChar { expected: char, actual: char },
+    #[error("unexpected char '{actual}', expected {expected}")]
+    UnexpectedChar {
+        expected: &'static str,
+        actual: char,
+    },
 
     /// Unexpected end of input
     #[error("unexpected end of input")]
     UnexpectedEnd,
+
+    /// Invalid decimal integer
+    #[error("invalid decimal integer")]
+    InvalidDecimalInteger {
+        #[source]
+        error: std::num::ParseIntError,
+    },
+
+    /// Invalid decimal floating point
+    #[error("invalid decimal floating point")]
+    InvalidDecimalFloatingPoint {
+        #[source]
+        error: std::num::ParseFloatError,
+    },
 }
 
 #[derive(Debug)]
-struct ParseAttributeListIter<'a> {
+struct AttributeListParser<'a> {
     input: &'a str,
     iter: std::iter::Peekable<std::str::CharIndices<'a>>,
 }
 
-impl<'a> ParseAttributeListIter<'a> {
-    pub fn new(input: &'a str) -> Self {
+impl<'a> AttributeListParser<'a> {
+    fn new(input: &'a str) -> Self {
         Self {
             input,
             iter: input.char_indices().peekable(),
         }
     }
-}
 
-impl<'a> Iterator for ParseAttributeListIter<'a> {
-    type Item = Result<(&'a str, &'a str), ParseAttributeListError>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let (key_start_i, key_start_c) = self.iter.peek().copied()?;
-        if !is_valid_attribute_key_char(key_start_c) {
-            todo!();
+    /// Parse the name in a name=value pair
+    fn parse_name(&mut self) -> Result<&'a str, AttributeListParseError> {
+        let (start_i, start_c) = self
+            .iter
+            .peek()
+            .copied()
+            .ok_or(AttributeListParseError::UnexpectedEnd)?;
+        if !is_valid_attribute_key_char(start_c) {
+            return Err(AttributeListParseError::UnexpectedChar {
+                expected: "an attribute name character",
+                actual: start_c,
+            });
         }
         self.iter.next();
 
-        let mut key_end_i = key_start_i;
+        let mut end_i = start_i + 1;
         while let Some((i, c)) = self.iter.peek() {
             if !is_valid_attribute_key_char(*c) {
                 break;
             }
-            key_end_i = *i + 1;
+            end_i = *i + 1;
             self.iter.next();
         }
+
+        Ok(&self.input[start_i..end_i])
+    }
+
+    fn parse_equals(&mut self) -> Result<(), AttributeListParseError> {
+        let (_start_i, start_c) = self
+            .iter
+            .peek()
+            .copied()
+            .ok_or(AttributeListParseError::UnexpectedEnd)?;
+        if start_c != '=' {
+            return Err(AttributeListParseError::UnexpectedChar {
+                expected: "'='",
+                actual: start_c,
+            });
+        }
+        self.iter.next();
+
+        Ok(())
+    }
+
+    fn parse_comma(&mut self) -> Result<(), AttributeListParseError> {
+        let (_start_i, start_c) = self
+            .iter
+            .peek()
+            .copied()
+            .ok_or(AttributeListParseError::UnexpectedEnd)?;
+        if start_c != ',' {
+            return Err(AttributeListParseError::UnexpectedChar {
+                expected: "','",
+                actual: start_c,
+            });
+        }
+        self.iter.next();
+
+        Ok(())
+    }
+
+    fn parse_double_quote(&mut self) -> Result<(), AttributeListParseError> {
+        let (_start_i, start_c) = self
+            .iter
+            .peek()
+            .copied()
+            .ok_or(AttributeListParseError::UnexpectedEnd)?;
+        if start_c != '"' {
+            return Err(AttributeListParseError::UnexpectedChar {
+                expected: "'\"'",
+                actual: start_c,
+            });
+        }
+        self.iter.next();
+
+        Ok(())
+    }
+
+    fn parse_x(&mut self) -> Result<(), AttributeListParseError> {
+        let (_start_i, start_c) = self
+            .iter
+            .peek()
+            .copied()
+            .ok_or(AttributeListParseError::UnexpectedEnd)?;
+        if start_c != 'x' {
+            return Err(AttributeListParseError::UnexpectedChar {
+                expected: "'x'",
+                actual: start_c,
+            });
+        }
+        self.iter.next();
+
+        Ok(())
+    }
+
+    fn parse_decimal_integer(&mut self) -> Result<u64, AttributeListParseError> {
+        let (start_i, start_c) = self
+            .iter
+            .peek()
+            .copied()
+            .ok_or(AttributeListParseError::UnexpectedEnd)?;
+        if !start_c.is_ascii_digit() {
+            return Err(AttributeListParseError::UnexpectedChar {
+                expected: "a digit",
+                actual: start_c,
+            });
+        }
+        self.iter.next();
+
+        let mut end_i = start_i + 1;
+        while let Some((i, c)) = self.iter.peek() {
+            if !c.is_ascii_digit() {
+                break;
+            }
+            end_i = *i + 1;
+            self.iter.next();
+        }
+
+        self.input[start_i..end_i]
+            .parse()
+            .map_err(|error| AttributeListParseError::InvalidDecimalInteger { error })
+    }
+
+    fn parse_quoted_string(&mut self) -> Result<&'a str, AttributeListParseError> {
+        let (start_i, start_c) = self
+            .iter
+            .peek()
+            .copied()
+            .ok_or(AttributeListParseError::UnexpectedEnd)?;
+        if start_c != '"' {
+            return Err(AttributeListParseError::UnexpectedChar {
+                expected: "a '\"'",
+                actual: start_c,
+            });
+        }
+        self.iter.next();
+
+        let mut end_i = start_i + 1;
+        while let Some((i, c)) = self.iter.peek() {
+            if matches!(c, '\r' | '\n' | '"') {
+                break;
+            }
+            end_i = *i + 1;
+            self.iter.next();
+        }
+        self.parse_double_quote()?;
+
+        Ok(&self.input[start_i + 1..end_i])
+    }
+
+    fn parse_decimal_resolution(&mut self) -> Result<(u64, u64), AttributeListParseError> {
+        let w = self.parse_decimal_integer()?;
+        self.parse_x()?;
+        let h = self.parse_decimal_integer()?;
+        Ok((w, h))
+    }
+
+    fn parse_decimal_floating_point(&mut self) -> Result<f64, AttributeListParseError> {
+        let (start_i, start_c) = self
+            .iter
+            .peek()
+            .copied()
+            .ok_or(AttributeListParseError::UnexpectedEnd)?;
+        if !start_c.is_ascii_digit() {
+            return Err(AttributeListParseError::UnexpectedChar {
+                expected: "a digit",
+                actual: start_c,
+            });
+        }
+        self.iter.next();
+
+        let mut end_i = start_i + 1;
+        while let Some((i, c)) = self.iter.peek() {
+            if !c.is_ascii_digit() && *c != '.' {
+                break;
+            }
+            end_i = *i + 1;
+            self.iter.next();
+        }
+
+        self.input[start_i..end_i]
+            .parse()
+            .map_err(|error| AttributeListParseError::InvalidDecimalFloatingPoint { error })
+    }
+}
+
+fn is_valid_attribute_key_char(c: char) -> bool {
+    matches!(c,  'A'..='Z' | '0'..='9' | '-')
+}
+
+/*
+impl<'a> Iterator for ParseAttributeListIter<'a> {
+    type Item = Result<(&'a str, &'a str), ParseAttributeListError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+
+
+
+
+
 
         match self
             .iter
@@ -335,9 +585,5 @@ impl<'a> Iterator for ParseAttributeListIter<'a> {
 
         None
     }
-}
-
-fn is_valid_attribute_key_char(c: char) -> bool {
-    matches!(c,  'A'..='Z' | '0'..='9' | '-')
 }
 */
