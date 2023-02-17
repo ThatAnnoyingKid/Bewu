@@ -8,6 +8,7 @@ const EXT_X_TARGET_DURATION_TAG: &str = "EXT-X-TARGETDURATION";
 const EXT_INF_TAG: &str = "EXTINF";
 const EXT_X_VERSION_TAG: &str = "EXT-X-VERSION";
 const EXT_X_MEDIA_SEQUENCE_TAG: &str = "EXT-X-MEDIA-SEQUENCE";
+const EXT_X_KEY_TAG: &str = "EXT-X-KEY";
 
 /// The library error type
 #[derive(Debug, thiserror::Error)]
@@ -105,7 +106,7 @@ pub struct MediaPlaylist {
     /// The media sequence number of this first media segment.
     ///
     /// If this is `None`, it can be assumed to be 0.
-    pub media_sequence_number: Option<u32>,
+    pub media_sequence_number: Option<u64>,
 }
 
 impl std::str::FromStr for MediaPlaylist {
@@ -134,14 +135,8 @@ impl std::str::FromStr for MediaPlaylist {
 
             if let Some(line) = line.strip_prefix('#') {
                 if line.starts_with("EXT") {
-                    if let Some(line) = line.strip_prefix(EXT_X_TARGET_DURATION_TAG) {
-                        let line = line
-                            .strip_prefix(':')
-                            .ok_or(Error::ExtXTargetDurationTagMissingColon)?;
-                        let duration = line
-                            .parse()
-                            .map(Duration::from_secs)
-                            .map_err(|error| Error::ExtXTargetDurationTagInvalidTime { error })?;
+                    if let Some(duration) = try_parse_ext_target_duration_tag(line) {
+                        let duration = duration?;
 
                         if target_duration.is_some() {
                             return Err(Error::DuplicateTag {
@@ -183,13 +178,19 @@ impl std::str::FromStr for MediaPlaylist {
                         let line = line.strip_prefix(':').ok_or(Error::TagMissingColon {
                             tag: EXT_X_MEDIA_SEQUENCE_TAG,
                         })?;
-                        let parsed: u32 = line.parse().map_err(|error| {
+                        let parsed: u64 = line.parse().map_err(|error| {
                             Error::ExtXMediaSequenceTagInvalidSequence { error }
                         })?;
 
                         // TODO: Disallow setting after first segment?
                         // TODO: Disallow dupes?
                         media_sequence_number = Some(parsed);
+                    } else if let Some(line) = line.strip_prefix(EXT_X_KEY_TAG) {
+                        let _line = line.strip_prefix(':').ok_or(Error::TagMissingColon {
+                            tag: EXT_X_MEDIA_SEQUENCE_TAG,
+                        })?;
+
+                        // TODO: Parse attribute list
                     } else {
                         return Err(Error::UnknownTag { tag: line.into() });
                     }
@@ -221,6 +222,20 @@ impl std::str::FromStr for MediaPlaylist {
             media_sequence_number,
         })
     }
+}
+
+fn try_parse_ext_target_duration_tag(line: &str) -> Option<Result<Duration, Error>> {
+    line.strip_prefix(EXT_X_TARGET_DURATION_TAG).map(|line| {
+        let line = line
+            .strip_prefix(':')
+            .ok_or(Error::ExtXTargetDurationTagMissingColon)?;
+        let duration = line
+            .parse()
+            .map(Duration::from_secs)
+            .map_err(|error| Error::ExtXTargetDurationTagInvalidTime { error })?;
+
+        Ok(duration)
+    })
 }
 
 /// A media segment
@@ -255,6 +270,11 @@ mod test {
         "/test_data/live-media-playlist-using-https.m3u8"
     ));
 
+    const PLAYLIST_WITH_ENCRYPTED_MEDIA_SEGMENTS: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/test_data/playlist-with-encrypted-media-segments.m3u8"
+    ));
+
     #[test]
     fn parse_simple_media_playlist() {
         let playlist: MediaPlaylist = SIMPLE_MEDIA_PLAYLIST.parse().expect("failed to parse");
@@ -287,6 +307,17 @@ mod test {
     #[test]
     fn parse_live_media_playlist_using_https() {
         let playlist: MediaPlaylist = LIVE_MEDIA_PLAYLIST_USING_HTTPS
+            .parse()
+            .expect("failed to parse");
+        assert!(playlist.version == Some(3));
+        assert!(playlist.media_sequence_number == Some(2680));
+
+        dbg!(&playlist);
+    }
+
+    #[test]
+    fn parse_playlist_with_encrypted_media_segments() {
+        let playlist: MediaPlaylist = PLAYLIST_WITH_ENCRYPTED_MEDIA_SEGMENTS
             .parse()
             .expect("failed to parse");
         assert!(playlist.version == Some(3));
