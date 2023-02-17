@@ -9,6 +9,9 @@ use std::time::Duration;
 const BANDWIDTH_ATTR: &str = "BANDWIDTH";
 const AVERAGE_BANDWIDTH_ATTR: &str = "AVERAGE-BANDWIDTH";
 const CODECS_ATTR: &str = "CODECS";
+const PROGRAM_ID_ATTR: &str = "PROGRAM-ID";
+const RESOLUTION_ATTR: &str = "RESOLUTION";
+const FRAME_RATE_ATTR: &str = "FRAME-RATE";
 
 /// An error that may occur while parsing a tag
 #[derive(Debug, thiserror::Error)]
@@ -111,6 +114,9 @@ pub(crate) enum Tag {
 
         /// The average bandwidth
         average_bandwidth: Option<u64>,
+
+        /// The frame rate
+        frame_rate: Option<f64>,
     },
 }
 
@@ -190,10 +196,13 @@ impl std::str::FromStr for Tag {
 
             let mut bandwidth = None;
             let mut average_bandwidth = None;
-            for pair in line.split(',') {
+            let mut frame_rate = None;
+
+            let mut input = line;
+            while let Some((pair, rest)) = input.split_once(',') {
                 // TODO: Verify K/V
                 let (name, value) = pair.split_once('=').ok_or(ParseTagError::MissingEquals)?;
-                match name {
+                input = match name {
                     BANDWIDTH_ATTR => {
                         let value: u64 = value
                             .parse()
@@ -202,6 +211,7 @@ impl std::str::FromStr for Tag {
                             return Err(ParseTagError::DuplicateAttribute { name: name.into() });
                         }
                         bandwidth = Some(value);
+                        rest
                     }
                     AVERAGE_BANDWIDTH_ATTR => {
                         let value: u64 = value
@@ -211,9 +221,25 @@ impl std::str::FromStr for Tag {
                             return Err(ParseTagError::DuplicateAttribute { name: name.into() });
                         }
                         average_bandwidth = Some(value);
+                        rest
                     }
                     CODECS_ATTR => {
                         // TODO: Parse Codec
+                        // todo!("{value}");
+                        rest
+                    }
+                    PROGRAM_ID_ATTR => {
+                        // TODO: This was removed
+                        // Consider adding if important
+                        rest
+                    }
+                    RESOLUTION_ATTR => rest,
+                    FRAME_RATE_ATTR => {
+                        let value: f64 = value
+                            .parse()
+                            .map_err(|error| ParseTagError::ParseFloat { error })?;
+                        frame_rate = Some(value);
+                        rest
                     }
                     _ => {
                         return Err(ParseTagError::UnknownAttributeValuePair {
@@ -231,9 +257,87 @@ impl std::str::FromStr for Tag {
             Ok(Self::ExtXStreamInf {
                 bandwidth,
                 average_bandwidth,
+                frame_rate,
             })
         } else {
             Err(ParseTagError::Unknown { line: line.into() })
         }
     }
 }
+
+/*
+/// An error that may occur while parsing an attribute list
+#[derive(Debug, thiserror::Error)]
+enum ParseAttributeListError {
+    /// Got an unexpected char
+    #[error("unexpected char '{actual}', expected '{expected}'")]
+    UnexpectedChar { expected: char, actual: char },
+
+    /// Unexpected end of input
+    #[error("unexpected end of input")]
+    UnexpectedEnd,
+}
+
+#[derive(Debug)]
+struct ParseAttributeListIter<'a> {
+    input: &'a str,
+    iter: std::iter::Peekable<std::str::CharIndices<'a>>,
+}
+
+impl<'a> ParseAttributeListIter<'a> {
+    pub fn new(input: &'a str) -> Self {
+        Self {
+            input,
+            iter: input.char_indices().peekable(),
+        }
+    }
+}
+
+impl<'a> Iterator for ParseAttributeListIter<'a> {
+    type Item = Result<(&'a str, &'a str), ParseAttributeListError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (key_start_i, key_start_c) = self.iter.peek().copied()?;
+        if !is_valid_attribute_key_char(key_start_c) {
+            todo!();
+        }
+        self.iter.next();
+
+        let mut key_end_i = key_start_i;
+        while let Some((i, c)) = self.iter.peek() {
+            if !is_valid_attribute_key_char(*c) {
+                break;
+            }
+            key_end_i = *i + 1;
+            self.iter.next();
+        }
+
+        match self
+            .iter
+            .next()
+            .ok_or(ParseAttributeListError::UnexpectedEnd)
+        {
+            Ok((_, '=')) => {}
+            Ok((_, c)) => {
+                return Some(Err(ParseAttributeListError::UnexpectedChar {
+                    expected: '=',
+                    actual: c,
+                }));
+            }
+            Err(e) => {
+                return Some(Err(e));
+            }
+        };
+
+        dbg!(self.iter.peek());
+
+        todo!("{:#?}", &self.input[key_start_i..key_end_i]);
+
+        None
+    }
+}
+
+fn is_valid_attribute_key_char(c: char) -> bool {
+    matches!(c,  'A'..='Z' | '0'..='9' | '-')
+}
+*/

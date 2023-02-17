@@ -63,7 +63,10 @@ pub enum Error {
 
 /// A master playlist
 #[derive(Debug)]
-pub struct MasterPlaylist {}
+pub struct MasterPlaylist {
+    /// A list of all variant streams
+    pub variant_streams: Vec<VariantStream>,
+}
 
 impl std::str::FromStr for MasterPlaylist {
     type Err = Error;
@@ -93,6 +96,7 @@ impl std::str::FromStr for MasterPlaylist {
                         Tag::ExtXStreamInf {
                             bandwidth,
                             average_bandwidth,
+                            frame_rate,
                         } => {
                             if stream_info.is_some() {
                                 return Err(Error::DuplicateTag {
@@ -101,7 +105,7 @@ impl std::str::FromStr for MasterPlaylist {
                             }
 
                             // TODO: Ensure this is immediately followed by a uri somehow.
-                            stream_info = Some((bandwidth, average_bandwidth));
+                            stream_info = Some((bandwidth, average_bandwidth, frame_rate));
                         }
                         _ => {
                             return Err(Error::InvalidTag);
@@ -110,7 +114,7 @@ impl std::str::FromStr for MasterPlaylist {
                 }
             } else {
                 let uri: Uri = line.parse().map_err(|error| Error::InvalidUri { error })?;
-                let (bandwidth, average_bandwidth) =
+                let (bandwidth, average_bandwidth, frame_rate) =
                     stream_info.take().ok_or(Error::MissingTag {
                         tag: EXT_X_STREAM_INF_TAG,
                     })?;
@@ -119,11 +123,12 @@ impl std::str::FromStr for MasterPlaylist {
                     uri,
                     bandwidth,
                     average_bandwidth,
+                    frame_rate,
                 });
             }
         }
 
-        Ok(Self {})
+        Ok(Self { variant_streams })
     }
 }
 
@@ -138,6 +143,9 @@ pub struct VariantStream {
 
     /// The average bandwidth
     pub average_bandwidth: Option<u64>,
+
+    /// The frame rate
+    pub frame_rate: Option<f64>,
 }
 
 #[cfg(test)]
@@ -149,9 +157,20 @@ mod test {
         "/test_data/master-playlist.m3u8"
     ));
 
+    const REAL_MASTER_PLAYLIST_1: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/test_data/real-master-playlist-1.m3u8"
+    ));
+
     #[test]
     fn parse_master_playlist() {
         let playlist: MasterPlaylist = MASTER_PLAYLIST.parse().expect("failed to parse");
+        dbg!(&playlist);
+    }
+
+    #[test]
+    fn parse_real_master_playlist_1() {
+        let playlist: MasterPlaylist = REAL_MASTER_PLAYLIST_1.parse().expect("failed to parse");
         dbg!(&playlist);
     }
 }
