@@ -50,9 +50,7 @@ impl std::str::FromStr for PlaylistType {
         match input {
             "VOD" => Ok(PlaylistType::Vod),
             "EVENT" => Ok(PlaylistType::Event),
-            _ => {
-                return Err(ParsePlaylistTypeError(input.into()));
-            }
+            _ => Err(ParsePlaylistTypeError(input.into())),
         }
     }
 }
