@@ -1,5 +1,7 @@
 use crate::ParsePlaylistTypeError;
+use crate::ParseVideoRangeError;
 use crate::PlaylistType;
+use crate::VideoRange;
 use crate::EXT_INF_TAG;
 use crate::EXT_X_ALLOW_CACHE_TAG;
 use crate::EXT_X_ENDLIST_TAG;
@@ -157,6 +159,9 @@ pub(crate) enum Tag {
 
         /// The frame rate
         frame_rate: Option<f64>,
+
+        /// The video range
+        video_range: Option<VideoRange>,
     },
 
     /// The EXT-X-ALLOW_CACHE tag
@@ -341,7 +346,7 @@ impl std::str::FromStr for Tag {
                 codecs,
                 resolution,
                 frame_rate,
-                // video_range,
+                video_range,
             })
         } else if let Some(_line) = line.strip_prefix(EXT_X_ALLOW_CACHE_TAG) {
             // TODO: This was removed in the spec
@@ -356,45 +361,6 @@ impl std::str::FromStr for Tag {
             Ok(Self::ExtXEndList)
         } else {
             Err(ParseTagError::Unknown { line: line.into() })
-        }
-    }
-}
-
-/// An error that may occur while parsing a video range
-#[derive(Debug)]
-pub struct ParseVideoRangeError(Box<str>);
-
-impl std::fmt::Display for ParseVideoRangeError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "\"{}\" is not a valid VIDEO-RANGE", self.0)
-    }
-}
-
-impl std::error::Error for ParseVideoRangeError {}
-
-/// Video Ranges
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Default)]
-pub enum VideoRange {
-    /// SDR
-    #[default]
-    Sdr,
-
-    /// HLG
-    Hlg,
-
-    /// PQ
-    Pq,
-}
-
-impl std::str::FromStr for VideoRange {
-    type Err = ParseVideoRangeError;
-
-    fn from_str(input: &str) -> Result<Self, Self::Err> {
-        match input {
-            "SDR" => Ok(Self::Sdr),
-            "HLQ" => Ok(Self::Hlg),
-            "PQ" => Ok(Self::Pq),
-            _ => Err(ParseVideoRangeError(input.into())),
         }
     }
 }
