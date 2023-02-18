@@ -1,4 +1,5 @@
 //! https://datatracker.ietf.org/doc/html/rfc8216
+//! https://datatracker.ietf.org/doc/html/draft-pantos-hls-rfc8216bis
 
 mod media_playlist;
 mod tag;

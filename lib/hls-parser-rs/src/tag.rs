@@ -17,6 +17,7 @@ const CODECS_ATTR: &str = "CODECS";
 const PROGRAM_ID_ATTR: &str = "PROGRAM-ID";
 const RESOLUTION_ATTR: &str = "RESOLUTION";
 const FRAME_RATE_ATTR: &str = "FRAME-RATE";
+const VIDEO_RANGE_ATTR: &str = "VIDEO-RANGE";
 
 /// An error that may occur while parsing a tag
 #[derive(Debug, thiserror::Error)]
@@ -297,6 +298,10 @@ impl std::str::FromStr for Tag {
                         }
                         frame_rate = Some(value);
                     }
+                    VIDEO_RANGE_ATTR => {
+                        // Part of the new draft standard
+                        let value = parser.parse_enumerated_string()?;
+                    }
                     _ => {
                         return Err(ParseTagError::UnknownAttribute { name: name.into() });
                     }
@@ -567,8 +572,38 @@ impl<'a> AttributeListParser<'a> {
             .parse()
             .map_err(|error| AttributeListParseError::InvalidDecimalFloatingPoint { error })
     }
+
+    fn parse_enumerated_string(&mut self) -> Result<&'a str, AttributeListParseError> {
+        let (start_i, start_c) = self
+            .iter
+            .peek()
+            .copied()
+            .ok_or(AttributeListParseError::UnexpectedEnd)?;
+        if !is_valid_enumerated_string_char(start_c) {
+            return Err(AttributeListParseError::UnexpectedChar {
+                expected: "a character that is not a comma, double-quote, or whitespace",
+                actual: start_c,
+            });
+        }
+        self.iter.next();
+
+        let mut end_i = start_i + 1;
+        while let Some((i, c)) = self.iter.peek() {
+            if !is_valid_enumerated_string_char(*c) {
+                break;
+            }
+            end_i = *i + 1;
+            self.iter.next();
+        }
+
+        Ok(&self.input[start_i..end_i])
+    }
 }
 
 fn is_valid_attribute_key_char(c: char) -> bool {
     matches!(c,  'A'..='Z' | '0'..='9' | '-')
+}
+
+fn is_valid_enumerated_string_char(c: char) -> bool {
+    !matches!(c, ',' | '"') && !c.is_whitespace()
 }
