@@ -98,6 +98,13 @@ pub enum ParseTagError {
         #[from]
         error: ParsePlaylistTypeError,
     },
+
+    ///Invalid video range
+    #[error("invalid video range")]
+    InvalidVideoRange {
+        #[from]
+        error: ParseVideoRangeError,
+    },
 }
 
 /// A tag
@@ -241,6 +248,7 @@ impl std::str::FromStr for Tag {
             let mut codecs = None;
             let mut resolution = None;
             let mut frame_rate = None;
+            let mut video_range = None;
 
             let mut parser = AttributeListParser::new(line);
             loop {
@@ -301,6 +309,12 @@ impl std::str::FromStr for Tag {
                     VIDEO_RANGE_ATTR => {
                         // Part of the new draft standard
                         let value = parser.parse_enumerated_string()?;
+                        let value: VideoRange = value.parse()?;
+
+                        if video_range.is_some() {
+                            return Err(ParseTagError::DuplicateAttribute { name: name.into() });
+                        }
+                        video_range = Some(value);
                     }
                     _ => {
                         return Err(ParseTagError::UnknownAttribute { name: name.into() });
@@ -327,6 +341,7 @@ impl std::str::FromStr for Tag {
                 codecs,
                 resolution,
                 frame_rate,
+                // video_range,
             })
         } else if let Some(_line) = line.strip_prefix(EXT_X_ALLOW_CACHE_TAG) {
             // TODO: This was removed in the spec
@@ -341,6 +356,45 @@ impl std::str::FromStr for Tag {
             Ok(Self::ExtXEndList)
         } else {
             Err(ParseTagError::Unknown { line: line.into() })
+        }
+    }
+}
+
+/// An error that may occur while parsing a video range
+#[derive(Debug)]
+pub struct ParseVideoRangeError(Box<str>);
+
+impl std::fmt::Display for ParseVideoRangeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "\"{}\" is not a valid VIDEO-RANGE", self.0)
+    }
+}
+
+impl std::error::Error for ParseVideoRangeError {}
+
+/// Video Ranges
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Default)]
+pub enum VideoRange {
+    /// SDR
+    #[default]
+    Sdr,
+
+    /// HLG
+    Hlg,
+
+    /// PQ
+    Pq,
+}
+
+impl std::str::FromStr for VideoRange {
+    type Err = ParseVideoRangeError;
+
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        match input {
+            "SDR" => Ok(Self::Sdr),
+            "HLQ" => Ok(Self::Hlg),
+            "PQ" => Ok(Self::Pq),
+            _ => Err(ParseVideoRangeError(input.into())),
         }
     }
 }
