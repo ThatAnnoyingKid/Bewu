@@ -1,11 +1,12 @@
 use crate::Error;
 use crate::PlaylistType;
 use crate::Tag;
+use crate::UriReferenceStr;
+use crate::UriReferenceString;
 use crate::EXT_INF_TAG;
 use crate::EXT_M3U_TAG;
 use crate::EXT_X_TARGET_DURATION_TAG;
 use crate::EXT_X_VERSION_TAG;
-use http::Uri;
 use std::time::Duration;
 
 /// A media playlist
@@ -109,7 +110,10 @@ impl std::str::FromStr for MediaPlaylist {
                     }
                 }
             } else {
-                let uri: Uri = line.parse().map_err(|error| Error::InvalidUri { error })?;
+                let uri = UriReferenceStr::new(line).map_err(|error| Error::InvalidUri {
+                    line: line.into(),
+                    error,
+                })?;
                 let (duration, title) = ext_inf_tag
                     .take()
                     .ok_or(Error::MissingTag { tag: EXT_INF_TAG })?;
@@ -117,7 +121,7 @@ impl std::str::FromStr for MediaPlaylist {
                 media_segments.push(MediaSegment {
                     duration,
                     title,
-                    uri,
+                    uri: uri.into(),
                 })
             }
         }
@@ -148,7 +152,7 @@ pub struct MediaSegment {
     pub title: Option<Box<str>>,
 
     /// The uri
-    pub uri: Uri,
+    pub uri: UriReferenceString,
 }
 
 #[cfg(test)]
@@ -190,17 +194,23 @@ mod test {
                     MediaSegment {
                         duration: Duration::from_secs_f64(9.009),
                         title: None,
-                        uri: Uri::from_static("http://media.example.com/first.ts"),
+                        uri: UriReferenceStr::new("http://media.example.com/first.ts")
+                            .unwrap()
+                            .into(),
                     },
                     MediaSegment {
                         duration: Duration::from_secs_f64(9.009),
                         title: None,
-                        uri: Uri::from_static("http://media.example.com/second.ts"),
+                        uri: UriReferenceStr::new("http://media.example.com/second.ts")
+                            .unwrap()
+                            .into(),
                     },
                     MediaSegment {
                         duration: Duration::from_secs_f64(3.003),
                         title: None,
-                        uri: Uri::from_static("http://media.example.com/third.ts"),
+                        uri: UriReferenceStr::new("http://media.example.com/third.ts")
+                            .unwrap()
+                            .into(),
                     }
                 ]
         );

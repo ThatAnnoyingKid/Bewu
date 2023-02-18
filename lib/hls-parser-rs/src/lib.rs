@@ -6,8 +6,9 @@ mod tag;
 pub use self::media_playlist::MediaPlaylist;
 pub(crate) use self::tag::ParseTagError;
 pub(crate) use self::tag::Tag;
-pub use http::uri::InvalidUri as InvalidUriError;
-pub use http::uri::Uri;
+pub use iri_string::types::UriReferenceStr;
+pub use iri_string::types::UriReferenceString;
+pub use iri_string::validate::Error as InvalidUriError;
 
 const EXT_M3U_TAG: &str = "#EXTM3U";
 
@@ -76,8 +77,15 @@ pub enum Error {
     },
 
     /// A URI was invalid
-    #[error("invalid uri")]
-    InvalidUri { error: InvalidUriError },
+    #[error("invalid uri \"{line}\"")]
+    InvalidUri {
+        /// The line that failed to parse
+        line: Box<str>,
+
+        /// The uri parse error
+        #[source]
+        error: InvalidUriError,
+    },
 
     /// Missing a tag
     #[error("missing tag \"{tag}\"")]
@@ -151,14 +159,17 @@ impl std::str::FromStr for MasterPlaylist {
                     }
                 }
             } else {
-                let uri: Uri = line.parse().map_err(|error| Error::InvalidUri { error })?;
+                let uri = UriReferenceStr::new(line).map_err(|error| Error::InvalidUri {
+                    line: line.into(),
+                    error,
+                })?;
                 let (bandwidth, average_bandwidth, codecs, frame_rate) =
                     stream_info.take().ok_or(Error::MissingTag {
                         tag: EXT_X_STREAM_INF_TAG,
                     })?;
 
                 variant_streams.push(VariantStream {
-                    uri,
+                    uri: uri.into(),
                     bandwidth,
                     average_bandwidth,
                     codecs,
@@ -175,7 +186,7 @@ impl std::str::FromStr for MasterPlaylist {
 #[derive(Debug)]
 pub struct VariantStream {
     /// The uri of the stream
-    pub uri: Uri,
+    pub uri: UriReferenceString,
 
     /// The bandwidth of the stream
     pub bandwidth: u64,
