@@ -144,6 +144,9 @@ pub(crate) enum Tag {
         /// The codecs
         codecs: Option<Vec<Box<str>>>,
 
+        /// The resolution
+        resolution: Option<(u64, u64)>,
+
         /// The frame rate
         frame_rate: Option<f64>,
     },
@@ -235,6 +238,7 @@ impl std::str::FromStr for Tag {
             let mut bandwidth = None;
             let mut average_bandwidth = None;
             let mut codecs = None;
+            let mut resolution = None;
             let mut frame_rate = None;
 
             let mut parser = AttributeListParser::new(line);
@@ -278,7 +282,12 @@ impl std::str::FromStr for Tag {
                         // Consider adding if important
                     }
                     RESOLUTION_ATTR => {
-                        let _value = parser.parse_decimal_resolution()?;
+                        let value = parser.parse_decimal_resolution()?;
+
+                        if resolution.is_some() {
+                            return Err(ParseTagError::DuplicateAttribute { name: name.into() });
+                        }
+                        resolution = Some(value);
                     }
                     FRAME_RATE_ATTR => {
                         let value = parser.parse_decimal_floating_point()?;
@@ -311,6 +320,7 @@ impl std::str::FromStr for Tag {
                 bandwidth,
                 average_bandwidth,
                 codecs,
+                resolution,
                 frame_rate,
             })
         } else if let Some(_line) = line.strip_prefix(EXT_X_ALLOW_CACHE_TAG) {

@@ -142,6 +142,7 @@ impl std::str::FromStr for MasterPlaylist {
                             bandwidth,
                             average_bandwidth,
                             codecs,
+                            resolution,
                             frame_rate,
                         } => {
                             if stream_info.is_some() {
@@ -151,7 +152,13 @@ impl std::str::FromStr for MasterPlaylist {
                             }
 
                             // TODO: Ensure this is immediately followed by a uri somehow.
-                            stream_info = Some((bandwidth, average_bandwidth, codecs, frame_rate));
+                            stream_info = Some((
+                                bandwidth,
+                                average_bandwidth,
+                                codecs,
+                                resolution,
+                                frame_rate,
+                            ));
                         }
                         _ => {
                             return Err(Error::InvalidTag);
@@ -163,7 +170,7 @@ impl std::str::FromStr for MasterPlaylist {
                     line: line.into(),
                     error,
                 })?;
-                let (bandwidth, average_bandwidth, codecs, frame_rate) =
+                let (bandwidth, average_bandwidth, codecs, resolution, frame_rate) =
                     stream_info.take().ok_or(Error::MissingTag {
                         tag: EXT_X_STREAM_INF_TAG,
                     })?;
@@ -173,6 +180,7 @@ impl std::str::FromStr for MasterPlaylist {
                     bandwidth,
                     average_bandwidth,
                     codecs,
+                    resolution,
                     frame_rate,
                 });
             }
@@ -196,6 +204,9 @@ pub struct VariantStream {
 
     /// The codecs
     pub codecs: Option<Vec<Box<str>>>,
+
+    /// The resolution
+    pub resolution: Option<(u64, u64)>,
 
     /// The frame rate
     pub frame_rate: Option<f64>,
