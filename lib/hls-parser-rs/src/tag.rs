@@ -1,5 +1,7 @@
 use crate::ParsePlaylistTypeError;
+use crate::ParseVideoRangeError;
 use crate::PlaylistType;
+use crate::VideoRange;
 use crate::EXT_INF_TAG;
 use crate::EXT_X_ALLOW_CACHE_TAG;
 use crate::EXT_X_ENDLIST_TAG;
@@ -17,6 +19,7 @@ const CODECS_ATTR: &str = "CODECS";
 const PROGRAM_ID_ATTR: &str = "PROGRAM-ID";
 const RESOLUTION_ATTR: &str = "RESOLUTION";
 const FRAME_RATE_ATTR: &str = "FRAME-RATE";
+const VIDEO_RANGE_ATTR: &str = "VIDEO-RANGE";
 
 /// An error that may occur while parsing a tag
 #[derive(Debug, thiserror::Error)]
@@ -97,6 +100,13 @@ pub enum ParseTagError {
         #[from]
         error: ParsePlaylistTypeError,
     },
+
+    ///Invalid video range
+    #[error("invalid video range")]
+    InvalidVideoRange {
+        #[from]
+        error: ParseVideoRangeError,
+    },
 }
 
 /// A tag
@@ -149,6 +159,9 @@ pub(crate) enum Tag {
 
         /// The frame rate
         frame_rate: Option<f64>,
+
+        /// The video range
+        video_range: Option<VideoRange>,
     },
 
     /// The EXT-X-ALLOW_CACHE tag
@@ -240,6 +253,7 @@ impl std::str::FromStr for Tag {
             let mut codecs = None;
             let mut resolution = None;
             let mut frame_rate = None;
+            let mut video_range = None;
 
             let mut parser = AttributeListParser::new(line);
             loop {
@@ -297,6 +311,16 @@ impl std::str::FromStr for Tag {
                         }
                         frame_rate = Some(value);
                     }
+                    VIDEO_RANGE_ATTR => {
+                        // Part of the new draft standard
+                        let value = parser.parse_enumerated_string()?;
+                        let value: VideoRange = value.parse()?;
+
+                        if video_range.is_some() {
+                            return Err(ParseTagError::DuplicateAttribute { name: name.into() });
+                        }
+                        video_range = Some(value);
+                    }
                     _ => {
                         return Err(ParseTagError::UnknownAttribute { name: name.into() });
                     }
@@ -322,6 +346,7 @@ impl std::str::FromStr for Tag {
                 codecs,
                 resolution,
                 frame_rate,
+                video_range,
             })
         } else if let Some(_line) = line.strip_prefix(EXT_X_ALLOW_CACHE_TAG) {
             // TODO: This was removed in the spec
@@ -567,8 +592,38 @@ impl<'a> AttributeListParser<'a> {
             .parse()
             .map_err(|error| AttributeListParseError::InvalidDecimalFloatingPoint { error })
     }
+
+    fn parse_enumerated_string(&mut self) -> Result<&'a str, AttributeListParseError> {
+        let (start_i, start_c) = self
+            .iter
+            .peek()
+            .copied()
+            .ok_or(AttributeListParseError::UnexpectedEnd)?;
+        if !is_valid_enumerated_string_char(start_c) {
+            return Err(AttributeListParseError::UnexpectedChar {
+                expected: "a character that is not a comma, double-quote, or whitespace",
+                actual: start_c,
+            });
+        }
+        self.iter.next();
+
+        let mut end_i = start_i + 1;
+        while let Some((i, c)) = self.iter.peek() {
+            if !is_valid_enumerated_string_char(*c) {
+                break;
+            }
+            end_i = *i + 1;
+            self.iter.next();
+        }
+
+        Ok(&self.input[start_i..end_i])
+    }
 }
 
 fn is_valid_attribute_key_char(c: char) -> bool {
     matches!(c,  'A'..='Z' | '0'..='9' | '-')
+}
+
+fn is_valid_enumerated_string_char(c: char) -> bool {
+    !matches!(c, ',' | '"') && !c.is_whitespace()
 }
