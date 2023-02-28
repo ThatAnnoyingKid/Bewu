@@ -1051,7 +1051,7 @@ dependencies = [
 [[package]]
 name = "nd-util"
 version = "0.0.0"
-source = "git+https://github.com/nathaniel-daniel/nd-util-rs#63e03613b1ececd360c7da0125744b09c728637d"
+source = "git+https://github.com/nathaniel-daniel/nd-util-rs#dca35a4fc0dcbc355b7732f014268e5faf21a7a6"
 
 [[package]]
 name = "new_debug_unreachable"
