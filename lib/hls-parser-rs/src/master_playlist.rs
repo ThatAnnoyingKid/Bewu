@@ -45,6 +45,7 @@ impl std::str::FromStr for MasterPlaylist {
                             resolution,
                             frame_rate,
                             video_range,
+                            name,
                         } => {
                             if stream_info.is_some() {
                                 return Err(Error::DuplicateTag {
@@ -60,6 +61,7 @@ impl std::str::FromStr for MasterPlaylist {
                                 resolution,
                                 frame_rate,
                                 video_range,
+                                name,
                             ));
                         }
                         _ => {
@@ -72,10 +74,17 @@ impl std::str::FromStr for MasterPlaylist {
                     line: line.into(),
                     error,
                 })?;
-                let (bandwidth, average_bandwidth, codecs, resolution, frame_rate, video_range) =
-                    stream_info.take().ok_or(Error::MissingTag {
-                        tag: EXT_X_STREAM_INF_TAG,
-                    })?;
+                let (
+                    bandwidth,
+                    average_bandwidth,
+                    codecs,
+                    resolution,
+                    frame_rate,
+                    video_range,
+                    name,
+                ) = stream_info.take().ok_or(Error::MissingTag {
+                    tag: EXT_X_STREAM_INF_TAG,
+                })?;
 
                 variant_streams.push(VariantStream {
                     uri: uri.into(),
@@ -85,6 +94,7 @@ impl std::str::FromStr for MasterPlaylist {
                     resolution,
                     frame_rate,
                     video_range,
+                    name,
                 });
             }
         }
@@ -116,6 +126,9 @@ pub struct VariantStream {
 
     /// The video range
     pub video_range: Option<VideoRange>,
+
+    /// The name
+    pub name: Option<Box<str>>,
 }
 
 #[cfg(test)]
