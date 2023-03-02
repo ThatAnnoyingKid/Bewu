@@ -6,7 +6,6 @@ use bewu_util::parse_ffmpeg_time;
 use hls_parser::MasterPlaylist;
 use hls_parser::MediaPlaylist;
 use std::collections::HashMap;
-use std::ffi::OsString;
 use std::fmt::Write;
 use std::path::Path;
 use std::path::PathBuf;
@@ -181,8 +180,10 @@ where
     P: AsRef<Path>,
 {
     let path = path.as_ref();
+    let temp_dir = nd_util::with_push_extension(path, "part.dir");
+    let temp_path = nd_util::with_push_extension(path, "part");
 
-    if bewu_util::try_exists(&path).await? {
+    if tokio::fs::try_exists(&path).await? {
         return Ok(());
     }
 
@@ -219,12 +220,14 @@ where
         .await?;
     let playlist: MediaPlaylist = playlist_text.parse()?;
 
-    let out_dir = nd_util::with_push_extension(path, "part.dir");
-    tokio::fs::create_dir_all(&out_dir).await?;
+    tokio::fs::create_dir_all(&temp_dir).await?;
 
     let mut join_set = JoinSet::new();
     let mut segment_paths = Vec::with_capacity(playlist.media_segments.len());
     for segment in playlist.media_segments.iter() {
+        // We only support mgpeg2-ts streams for now
+        ensure!(segment.uri.as_str().ends_with(".ts"));
+
         let client = client.clone();
 
         let url = match segment.uri.to_iri() {
@@ -233,16 +236,14 @@ where
                 .base_url(Some(&playlist_uri))
                 .parse(relative_uri.into())?,
         };
-        let file_name = url
-            .path_segments()
-            .and_then(|path| path.rev().next())
-            .context("missing path")?;
-        let out_path = out_dir.join(file_name);
+        // Generated to be unique for segment uri.
+        let file_name = url_to_file_name(url.as_str());
+        let out_path = temp_dir.join(file_name);
 
         segment_paths.push(out_path.clone());
 
         join_set.spawn(async move {
-            if bewu_util::try_exists(&out_path).await? {
+            if tokio::fs::try_exists(&out_path).await? {
                 return Ok(());
             }
 
@@ -275,22 +276,45 @@ where
     progress_bar.finish();
     last_error?;
 
-    let temp_path = nd_util::with_push_extension(path, "part");
+    // TODO: May be asyncified by stat-ing all component files,
+    // calculating offsets,
+    // then writing to different segments of the file concurrently.
+    // This may even be done as part of the download process, avoiding the need of a second copy.
+    // However, if the server does not send a content-length header, we must download everything to a seperate file.
+    // A temp dir of some kind will always be required.
+    // Copy to intermediate ts file
+    let concat_file_name = url_to_file_name(playlist_uri.as_str());
+    let concat_file_path = temp_dir.join(&concat_file_name);
+    {
+        use std::fs::File;
+        use std::io::Write;
 
-    let mut input = OsString::from("concat:");
-    let segment_paths_len = segment_paths.len();
-    for (i, path) in segment_paths.iter().enumerate() {
-        if i + 1 == segment_paths_len {
-            write!(&mut input, "{}", path.display())?;
-        } else {
-            write!(&mut input, "{}|", path.display())?;
-        }
+        let concat_file_path = concat_file_path.clone();
+
+        tokio::task::spawn_blocking(|| {
+            let dest_file = File::create(concat_file_path)?;
+            let mut dest_file = fd_lock::RwLock::new(dest_file);
+            {
+                let mut dest_file = dest_file.write()?;
+
+                for path in segment_paths {
+                    let mut src_file = File::open(path)?;
+                    std::io::copy(&mut src_file, &mut *dest_file)?;
+                }
+            }
+            let mut dest_file = dest_file.into_inner();
+            dest_file.flush()?;
+            dest_file.sync_all()?;
+
+            Result::<_, anyhow::Error>::Ok(())
+        })
+        .await??;
     }
 
     let mut concat_stream = tokio_ffmpeg_cli::Builder::new()
         .audio_codec("copy")
         .video_codec("copy")
-        .input(input)
+        .input(concat_file_path)
         .output_format("mp4")
         .output(&temp_path)
         .overwrite(false)
@@ -303,7 +327,7 @@ where
         .sum();
     let progress_bar = indicatif::ProgressBar::new(duration.as_secs());
     let progress_bar_style_template =
-        "[Time = {elapsed_precise} | ETA = {eta_precise}] Concatenating segments {wide_bar}";
+        "[Time = {elapsed_precise} | ETA = {eta_precise}] Remuxing {wide_bar}";
     let progress_bar_style = indicatif::ProgressStyle::default_bar()
         .template(progress_bar_style_template)
         .expect("invalid progress bar style template");
@@ -347,9 +371,26 @@ where
     match last_error.as_ref() {
         Ok(()) => {
             tokio::fs::rename(&temp_path, path).await?;
-            tokio::fs::remove_dir_all(&out_dir).await?;
+            tokio::fs::remove_dir_all(&temp_dir).await?;
         }
         Err(_e) => {}
     }
     last_error
+}
+
+fn url_to_file_name(url: &str) -> String {
+    let mut file_name = String::with_capacity(url.len());
+    for c in url.chars() {
+        match c {
+            '\\' | '/' | ':' | 'x' => {
+                let c = u32::from(c);
+                write!(file_name, "x{c:02X}").unwrap();
+            }
+            c => {
+                file_name.push(c);
+            }
+        }
+    }
+
+    file_name
 }
