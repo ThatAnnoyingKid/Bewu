@@ -2356,6 +2356,7 @@ dependencies = [
  "anyhow",
  "argh",
  "bewu-util",
+ "fd-lock",
  "hls-parser",
  "indicatif",
  "nd-util",
