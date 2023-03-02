@@ -3,8 +3,15 @@ use anyhow::bail;
 use anyhow::ensure;
 use anyhow::Context;
 use bewu_util::parse_ffmpeg_time;
+use hls_parser::MasterPlaylist;
+use hls_parser::MediaPlaylist;
 use std::collections::HashMap;
+use std::ffi::OsString;
+use std::fmt::Write;
+use std::path::Path;
 use std::path::PathBuf;
+use std::time::Duration;
+use tokio::task::JoinSet;
 use tokio_stream::StreamExt;
 use url::Url;
 
@@ -19,7 +26,7 @@ pub struct Options {
         description = "the source the download should use. Defaults to main.",
         default = "Default::default()"
     )]
-    source: Source,
+    pub source: Source,
 }
 
 /// The source
@@ -84,87 +91,18 @@ pub async fn exec(client: vidstreaming::Client, options: Options) -> anyhow::Res
         }
     };
 
-    println!("Probing sources...");
-    let probe_result = probe_url(best_source.file.as_str()).await?;
-    let duration: f64 = probe_result
-        .format
-        .duration
-        .parse::<f64>()
-        .context("failed to parse duration")?
-        .floor();
-    println!("  Duration: {duration}");
+    ensure!(
+        best_source.is_hls(),
+        "the selected source is not a HLS stream"
+    );
 
-    let temp_path = nd_util::with_push_extension(&out_path, "part");
+    download_hls_to_mp4(&client.client, best_source.file.as_str(), &out_path).await?;
 
-    println!("Starting download stream...");
-    let mut download_stream = tokio_ffmpeg_cli::Builder::new()
-        .audio_codec("copy")
-        .video_codec("copy")
-        .input(best_source.file.as_str())
-        .output_format("mp4")
-        .output(&temp_path)
-        .overwrite(false)
-        .spawn()?;
-
-    let progress_bar = indicatif::ProgressBar::new(duration as u64);
-    let progress_bar_style_template = "[Time = {elapsed_precise} | ETA = {eta_precise}] {wide_bar}";
-    let progress_bar_style = indicatif::ProgressStyle::default_bar()
-        .template(progress_bar_style_template)
-        .expect("invalid progress bar style template");
-    progress_bar.set_style(progress_bar_style);
-
-    let mut last_error = Ok(());
-    while let Some(event) = download_stream.next().await {
-        let event = match event {
-            Ok(event) => event,
-            Err(e) => {
-                last_error = Err(e).context("stream event error");
-                continue;
-            }
-        };
-
-        match event {
-            tokio_ffmpeg_cli::Event::Progress(event) => {
-                let out_time = match parse_ffmpeg_time(&event.out_time) {
-                    Ok(out_time) => out_time,
-                    Err(e) => {
-                        last_error = Err(e).context("failed to parse out time");
-                        continue;
-                    }
-                };
-
-                progress_bar.set_position(out_time);
-            }
-            tokio_ffmpeg_cli::Event::ExitStatus(exit_status) => {
-                if !exit_status.success() {
-                    last_error = Err(anyhow!("ffmpeg exit status was \"{exit_status:?}\""));
-                }
-            }
-            tokio_ffmpeg_cli::Event::Unknown(_line) => {
-                // dbg!(line);
-                // Data that was not parsed, probably only useful for debugging.
-            }
-        }
-    }
-    progress_bar.finish();
-
-    match last_error.as_ref() {
-        Ok(()) => {
-            tokio::fs::rename(&temp_path, &out_path).await?;
-        }
-        Err(_e) => {
-            if let Err(e) = tokio::fs::remove_file(temp_path)
-                .await
-                .context("failed to remove temp file")
-            {
-                eprintln!("{e}");
-            }
-        }
-    }
-
-    last_error
+    Ok(())
 }
 
+// TODO: Consider making a util func
+#[allow(dead_code)]
 pub async fn probe_url(url: &str) -> anyhow::Result<ProbeResult> {
     let output = tokio::process::Command::new("ffprobe")
         .args(["-v", "error"])
@@ -235,4 +173,183 @@ pub struct Format {
     /// Extra k/v
     #[serde(flatten)]
     pub unknown: HashMap<String, serde_json::Value>,
+}
+
+/// Download a hls stream.
+async fn download_hls_to_mp4<P>(client: &reqwest::Client, url: &str, path: P) -> anyhow::Result<()>
+where
+    P: AsRef<Path>,
+{
+    let path = path.as_ref();
+
+    if bewu_util::try_exists(&path).await? {
+        return Ok(());
+    }
+
+    let playlist_text = client
+        .get(url)
+        .send()
+        .await?
+        .error_for_status()?
+        .text()
+        .await?;
+    let playlist: MasterPlaylist = playlist_text.parse().context("failed to parse playlist")?;
+    let best_variant_stream = playlist
+        .variant_streams
+        .iter()
+        .max_by_key(|stream| stream.bandwidth)
+        .context("failed to select a variant stream")?;
+
+    let playlist_uri = match best_variant_stream.uri.to_iri() {
+        Ok(absolute_uri) => Url::parse(absolute_uri.into())?,
+        Err(relative_uri) => {
+            let url = Url::parse(url)?;
+            Url::options()
+                .base_url(Some(&url))
+                .parse(relative_uri.into())?
+        }
+    };
+
+    let playlist_text = client
+        .get(playlist_uri.as_str())
+        .send()
+        .await?
+        .error_for_status()?
+        .text()
+        .await?;
+    let playlist: MediaPlaylist = playlist_text.parse()?;
+
+    let out_dir = nd_util::with_push_extension(path, "part.dir");
+    tokio::fs::create_dir_all(&out_dir).await?;
+
+    let mut join_set = JoinSet::new();
+    let mut segment_paths = Vec::with_capacity(playlist.media_segments.len());
+    for segment in playlist.media_segments.iter() {
+        let client = client.clone();
+
+        let url = match segment.uri.to_iri() {
+            Ok(absolute_uri) => Url::parse(absolute_uri.into())?,
+            Err(relative_uri) => Url::options()
+                .base_url(Some(&playlist_uri))
+                .parse(relative_uri.into())?,
+        };
+        let file_name = url
+            .path_segments()
+            .and_then(|path| path.rev().next())
+            .context("missing path")?;
+        let out_path = out_dir.join(file_name);
+
+        segment_paths.push(out_path.clone());
+
+        join_set.spawn(async move {
+            if bewu_util::try_exists(&out_path).await? {
+                return Ok(());
+            }
+
+            nd_util::download_to_path(&client, url.as_str(), out_path).await
+        });
+    }
+
+    let total = playlist.media_segments.len();
+    let progress_bar = indicatif::ProgressBar::new(total as u64);
+    let progress_bar_style_template =
+        "[Time = {elapsed_precise} | ETA = {eta_precise}] Downloading segments {wide_bar}";
+    let progress_bar_style = indicatif::ProgressStyle::default_bar()
+        .template(progress_bar_style_template)
+        .expect("invalid progress bar style template");
+    progress_bar.set_style(progress_bar_style);
+
+    let mut last_error: anyhow::Result<()> = Ok(());
+    while let Some(result) = join_set.join_next().await {
+        let result = result
+            .context("failed to join task")
+            .and_then(std::convert::identity);
+        progress_bar.inc(1);
+        match result {
+            Ok(()) => {}
+            Err(error) => {
+                last_error = Err(error);
+            }
+        }
+    }
+    progress_bar.finish();
+    last_error?;
+
+    let temp_path = nd_util::with_push_extension(path, "part");
+
+    let mut input = OsString::from("concat:");
+    let segment_paths_len = segment_paths.len();
+    for (i, path) in segment_paths.iter().enumerate() {
+        if i + 1 == segment_paths_len {
+            write!(&mut input, "{}", path.display())?;
+        } else {
+            write!(&mut input, "{}|", path.display())?;
+        }
+    }
+
+    let mut concat_stream = tokio_ffmpeg_cli::Builder::new()
+        .audio_codec("copy")
+        .video_codec("copy")
+        .input(input)
+        .output_format("mp4")
+        .output(&temp_path)
+        .overwrite(false)
+        .spawn()?;
+
+    let duration: Duration = playlist
+        .media_segments
+        .iter()
+        .map(|segment| segment.duration)
+        .sum();
+    let progress_bar = indicatif::ProgressBar::new(duration.as_secs());
+    let progress_bar_style_template =
+        "[Time = {elapsed_precise} | ETA = {eta_precise}] Concatenating segments {wide_bar}";
+    let progress_bar_style = indicatif::ProgressStyle::default_bar()
+        .template(progress_bar_style_template)
+        .expect("invalid progress bar style template");
+    progress_bar.set_style(progress_bar_style);
+
+    let mut last_error = Ok(());
+    while let Some(event) = concat_stream.next().await {
+        let event = match event {
+            Ok(event) => event,
+            Err(e) => {
+                last_error = Err(e).context("stream event error");
+                continue;
+            }
+        };
+
+        match event {
+            tokio_ffmpeg_cli::Event::Progress(event) => {
+                let out_time = match parse_ffmpeg_time(&event.out_time) {
+                    Ok(out_time) => out_time,
+                    Err(e) => {
+                        last_error = Err(e).context("failed to parse out time");
+                        continue;
+                    }
+                };
+
+                progress_bar.set_position(out_time);
+            }
+            tokio_ffmpeg_cli::Event::ExitStatus(exit_status) => {
+                if !exit_status.success() {
+                    last_error = Err(anyhow!("ffmpeg exit status was \"{exit_status:?}\""));
+                }
+            }
+            tokio_ffmpeg_cli::Event::Unknown(_line) => {
+                // dbg!(line);
+                // Data that was not parsed, probably only useful for debugging.
+            }
+        }
+    }
+    progress_bar.finish();
+
+    match last_error.as_ref() {
+        Ok(()) => {
+            tokio::fs::rename(&temp_path, path).await?;
+            tokio::fs::remove_dir_all(&out_dir).await?;
+        }
+        Err(_e) => {}
+    }
+    last_error
 }
