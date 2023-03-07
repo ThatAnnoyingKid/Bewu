@@ -20,6 +20,7 @@ const PROGRAM_ID_ATTR: &str = "PROGRAM-ID";
 const RESOLUTION_ATTR: &str = "RESOLUTION";
 const FRAME_RATE_ATTR: &str = "FRAME-RATE";
 const VIDEO_RANGE_ATTR: &str = "VIDEO-RANGE";
+const NAME_ATTR: &str = "NAME";
 
 /// An error that may occur while parsing a tag
 #[derive(Debug, thiserror::Error)]
@@ -162,6 +163,9 @@ pub(crate) enum Tag {
 
         /// The video range
         video_range: Option<VideoRange>,
+
+        /// The name
+        name: Option<Box<str>>,
     },
 
     /// The EXT-X-ALLOW_CACHE tag
@@ -254,6 +258,7 @@ impl std::str::FromStr for Tag {
             let mut resolution = None;
             let mut frame_rate = None;
             let mut video_range = None;
+            let mut name_attr = None;
 
             let mut parser = AttributeListParser::new(line);
             loop {
@@ -321,6 +326,16 @@ impl std::str::FromStr for Tag {
                         }
                         video_range = Some(value);
                     }
+                    NAME_ATTR => {
+                        // Not defined for this tag, but it is used in practice with this tag.
+                        // We assume it is defined the same way as the EXT-X-MEDIA tag's NAME attribute, excepct that it is optional.
+                        let value = parser.parse_quoted_string()?;
+                        if name_attr.is_some() {
+                            return Err(ParseTagError::DuplicateAttribute { name: name.into() });
+                        }
+
+                        name_attr = Some(value);
+                    }
                     _ => {
                         return Err(ParseTagError::UnknownAttribute { name: name.into() });
                     }
@@ -347,6 +362,7 @@ impl std::str::FromStr for Tag {
                 resolution,
                 frame_rate,
                 video_range,
+                name: name_attr.map(|name| name.into()),
             })
         } else if let Some(_line) = line.strip_prefix(EXT_X_ALLOW_CACHE_TAG) {
             // TODO: This was removed in the spec

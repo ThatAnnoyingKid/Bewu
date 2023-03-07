@@ -12,10 +12,13 @@ path = "src/main.rs"
 anyhow = "1.0.69"
 argh = "0.1.10"
 bewu-util = { path = "../bewu-util-rs", features = ["try-exists", "parse-ffmpeg-time"] }
+fd-lock = "3.0.10"
+hls-parser = { path = "../hls-parser-rs" }
 indicatif = "0.17.3"
-nd-util = { git = "https://github.com/nathaniel-daniel/nd-util-rs" }
+nd-util = { git = "https://github.com/nathaniel-daniel/nd-util-rs", features = [ "download-to-path" ] }
+reqwest = { version = "0.11.14", default-features = false }
 serde = { version = "1.0.152", features = ["derive"] }
-serde_json = "1.0.93"
+serde_json = "1.0.94"
 tokio = { version = "1.26.0", features = ["rt-multi-thread", "fs"] }
 tokio-ffmpeg-cli = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs" }
 tokio-stream = "0.1.12"
