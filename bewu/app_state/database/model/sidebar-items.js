@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["KitsuAnime","Anime data fetched from kitsu"],["KitsuAnimeEpisode","Anime episode data fetched from kitsu"]]};

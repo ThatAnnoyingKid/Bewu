@@ -1,0 +1,1 @@
+window.ALL_CRATES = ["bewu","bewu_util","hls_parser","kitsu","vidstreaming","xtask"];

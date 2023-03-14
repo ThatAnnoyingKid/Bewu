@@ -1,0 +1,3 @@
+(function() {var implementors = {
+"bewu":[["impl&lt;T&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.67.1/core/convert/trait.AsRef.html\" title=\"trait core::convert::AsRef\">AsRef</a>&lt;JoinHandle&lt;T&gt;&gt; for <a class=\"struct\" href=\"bewu/util/struct.AbortJoinHandle.html\" title=\"struct bewu::util::AbortJoinHandle\">AbortJoinHandle</a>&lt;T&gt;"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

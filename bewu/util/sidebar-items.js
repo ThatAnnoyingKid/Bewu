@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":[["async_lock_file",""]],"struct":[["AbortJoinHandle","A join handle wrapper that will abort the task when dropped."],["AsyncLockFile",""]]};

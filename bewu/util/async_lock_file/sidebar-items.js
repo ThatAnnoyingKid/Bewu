@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":[["Message",""]],"fn":[["async_lock_file_thread_impl",""]],"struct":[["AsyncLockFile",""]]};

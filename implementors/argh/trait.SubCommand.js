@@ -1,0 +1,3 @@
+(function() {var implementors = {
+"xtask":[["impl SubCommand for <a class=\"struct\" href=\"xtask/struct.BuildOptions.html\" title=\"struct xtask::BuildOptions\">BuildOptions</a>"],["impl SubCommand for <a class=\"struct\" href=\"xtask/struct.RunOptions.html\" title=\"struct xtask::RunOptions\">RunOptions</a>"],["impl SubCommand for <a class=\"struct\" href=\"xtask/struct.FmtOptions.html\" title=\"struct xtask::FmtOptions\">FmtOptions</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

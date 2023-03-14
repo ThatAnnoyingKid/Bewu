@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":[["NPM_BIN",""]],"enum":[["Subcommand",""]],"fn":[["build_frontend",""],["main",""]],"struct":[["BuildOptions",""],["FmtOptions",""],["Options",""],["RunOptions",""]]};
