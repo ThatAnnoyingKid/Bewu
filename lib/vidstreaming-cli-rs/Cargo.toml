@@ -9,7 +9,7 @@ name = "vidstreaming"
 path = "src/main.rs"
 
 [dependencies]
-anyhow = "1.0.69"
+anyhow = "1.0.70"
 argh = "0.1.10"
 bewu-util = { path = "../bewu-util-rs", features = ["try-exists", "parse-ffmpeg-time"] }
 fd-lock = "3.0.10"
