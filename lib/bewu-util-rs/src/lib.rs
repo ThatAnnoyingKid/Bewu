@@ -1,8 +1,3 @@
-#[cfg(feature = "try-exists")]
-mod try_exists;
-#[cfg(feature = "try-exists")]
-pub use self::try_exists::*;
-
 #[cfg(feature = "state-update-channel")]
 mod state_update_channel;
 #[cfg(feature = "state-update-channel")]
