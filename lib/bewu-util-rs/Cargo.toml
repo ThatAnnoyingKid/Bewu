@@ -12,6 +12,10 @@ tokio-stream = { version = "0.1.12", optional = true }
 tokio-util = { version = "0.7.7", optional = true }
 
 [features]
+abort-join-handle = [
+    "tokio",
+    "tokio/rt",
+]
 async-lock-file = [
     "anyhow",
     "fd-lock",
