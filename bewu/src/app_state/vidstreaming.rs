@@ -172,7 +172,7 @@ async fn vidstreaming_task_impl(
                     let file_name = get_episode_file_name(&anime_slug, episode_number);
                     let path = path.join(&file_name);
 
-                    if bewu_util::try_exists(&path).await? {
+                    if tokio::fs::try_exists(&path).await? {
                         Ok(VidstreamingEpisode {
                             path: Some(file_name),
                         })
@@ -296,7 +296,7 @@ async fn download_task_impl(
 
     let file_name = get_episode_file_name(&anime_slug, episode_number);
     let out_path = path.join(file_name);
-    match bewu_util::try_exists(&out_path)
+    match tokio::fs::try_exists(&out_path)
         .await
         .context("failed to check if episode exists")
     {

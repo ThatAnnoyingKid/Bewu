@@ -57,7 +57,7 @@ pub async fn exec(client: vidstreaming::Client, options: Options) -> anyhow::Res
 
     let out_path = PathBuf::new().join(format!("{}.mp4", episode.name));
 
-    if bewu_util::try_exists(&out_path).await? {
+    if tokio::fs::try_exists(&out_path).await? {
         println!("File exists, exiting...");
         return Ok(());
     }
