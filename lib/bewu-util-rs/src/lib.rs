@@ -1,3 +1,8 @@
+#[cfg(feature = "abort-join-handle")]
+mod abort_join_handle;
+#[cfg(feature = "abort-join-handle")]
+pub use self::abort_join_handle::*;
+
 #[cfg(feature = "async-lock-file")]
 mod async_lock_file;
 #[cfg(feature = "async-lock-file")]
