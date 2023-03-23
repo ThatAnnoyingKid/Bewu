@@ -6,11 +6,19 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 anyhow = { version = "1.0.70", optional = true }
+fd-lock = { version = "3.0.10", optional = true }
 tokio = { version = "1.26.0", optional = true }
 tokio-stream = { version = "0.1.12", optional = true }
 tokio-util = { version = "0.7.7", optional = true }
 
 [features]
+async-lock-file = [
+    "anyhow",
+    "fd-lock",
+    "tokio",
+    "tokio/rt",
+    "tokio/sync",
+]
 state-update-channel = [
     "tokio",
     "tokio/sync",

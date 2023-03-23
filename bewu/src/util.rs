@@ -1,6 +1,4 @@
-mod async_lock_file;
-
-pub use self::async_lock_file::AsyncLockFile;
+pub use bewu_util::AsyncLockFile;
 
 /// A join handle wrapper that will abort the task when dropped.
 pub struct AbortJoinHandle<T> {

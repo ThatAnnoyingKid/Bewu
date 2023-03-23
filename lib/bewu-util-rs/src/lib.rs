@@ -1,3 +1,8 @@
+#[cfg(feature = "async-lock-file")]
+mod async_lock_file;
+#[cfg(feature = "async-lock-file")]
+pub use self::async_lock_file::*;
+
 #[cfg(feature = "state-update-channel")]
 mod state_update_channel;
 #[cfg(feature = "state-update-channel")]
