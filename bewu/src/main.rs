@@ -26,8 +26,8 @@ fn main() -> anyhow::Result<()> {
 async fn async_main(config: Config) -> anyhow::Result<()> {
     let app_state = Arc::new(AppState::new(&config.data_directory).await?);
     let app = self::routes::routes(&config, app_state.clone())?;
-    let server =
-        axum::Server::try_bind(&config.bind_address).context("failed to bind to address")?;
+    let server = axum::Server::try_bind(&config.bind_address)
+        .with_context(|| format!("failed to bind to address \"{}\"", config.bind_address))?;
 
     info!("listening on {}", config.bind_address);
 
