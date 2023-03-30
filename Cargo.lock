@@ -70,7 +70,7 @@ checksum = "64cb94155d965e3d37ffbbe7cc5b82c3dd79dd33bd48e536f73d2cfb8d85506f"
 [[package]]
 name = "async-rusqlite"
 version = "0.0.0"
-source = "git+https://github.com/ThatAnnoyingKid/pikadick-rs#67a3a81f02eb9740ff25aa9eaac41f75472257e1"
+source = "git+https://github.com/ThatAnnoyingKid/pikadick-rs#1e1e25779f28ad3a30079d2728c60a32de742993"
 dependencies = [
  "rusqlite",
  "thiserror",
@@ -1052,7 +1052,7 @@ dependencies = [
 [[package]]
 name = "nd-util"
 version = "0.0.0"
-source = "git+https://github.com/nathaniel-daniel/nd-util-rs#2815cfe9a5626036cd071dad3b37e9a1ce09b828"
+source = "git+https://github.com/nathaniel-daniel/nd-util-rs#ec6de736d683f23cce6a68c1b4ed2deb31ae9cfb"
 dependencies = [
  "anyhow",
  "cfg-if",
@@ -1293,7 +1293,7 @@ dependencies = [
 [[package]]
 name = "pikadick-util"
 version = "0.0.0"
-source = "git+https://github.com/ThatAnnoyingKid/pikadick-rs#67a3a81f02eb9740ff25aa9eaac41f75472257e1"
+source = "git+https://github.com/ThatAnnoyingKid/pikadick-rs#1e1e25779f28ad3a30079d2728c60a32de742993"
 dependencies = [
  "anyhow",
  "futures",
@@ -2005,7 +2005,7 @@ dependencies = [
 [[package]]
 name = "tokio-ffmpeg-cli"
 version = "0.0.0"
-source = "git+https://github.com/ThatAnnoyingKid/pikadick-rs#67a3a81f02eb9740ff25aa9eaac41f75472257e1"
+source = "git+https://github.com/ThatAnnoyingKid/pikadick-rs#1e1e25779f28ad3a30079d2728c60a32de742993"
 dependencies = [
  "bitflags",
  "futures",
