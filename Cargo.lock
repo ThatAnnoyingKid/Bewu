@@ -887,7 +887,7 @@ dependencies = [
 [[package]]
 name = "json-api"
 version = "0.0.0"
-source = "git+https://github.com/adumbidiot/json_api-rs#150ee0ca8aa61809b4b91ec9a1b87e89fff201bd"
+source = "git+https://github.com/adumbidiot/json_api-rs#e0b038373f742c80cb3d312a4cef3b1c362e3313"
 dependencies = [
  "reqwest",
  "serde",
