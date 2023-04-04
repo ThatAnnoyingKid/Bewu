@@ -1052,7 +1052,7 @@ dependencies = [
 [[package]]
 name = "nd-util"
 version = "0.0.0"
-source = "git+https://github.com/nathaniel-daniel/nd-util-rs#ec6de736d683f23cce6a68c1b4ed2deb31ae9cfb"
+source = "git+https://github.com/nathaniel-daniel/nd-util-rs#090f050e0d4f99e63a156e51c9f05570b703292a"
 dependencies = [
  "anyhow",
  "cfg-if",
