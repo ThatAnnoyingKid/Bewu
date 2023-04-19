@@ -7,7 +7,7 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 anyhow = "1.0.70"
 async-rusqlite = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs", features = [ "bundled" ] }
-axum = "0.6.15"
+axum = "0.6.16"
 bewu-util = { path = "../lib/bewu-util-rs", features = ["abort-join-handle", "state-update-channel", "parse-ffmpeg-time", "async-lock-file"] }
 fd-lock = "3.0.12"
 kitsu = { path = "../lib/kitsu-rs", features = [ "rustls-tls" ], default-features = false }
