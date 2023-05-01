@@ -137,8 +137,7 @@ impl VideoPlayer {
             .next()
             .and_then(|el| {
                 el.value()
-                    .classes
-                    .iter()
+                    .classes()
                     .find_map(|class| class.strip_prefix("container-"))
             })
             .ok_or(FromHtmlError::MissingRequestKey)?
@@ -149,8 +148,7 @@ impl VideoPlayer {
             .next()
             .and_then(|el| {
                 el.value()
-                    .classes
-                    .iter()
+                    .classes()
                     .find_map(|class| class.strip_prefix("container-"))
             })
             .ok_or(FromHtmlError::MissingRequestIv)?
@@ -161,8 +159,7 @@ impl VideoPlayer {
             .next()
             .and_then(|el| {
                 el.value()
-                    .classes
-                    .iter()
+                    .classes()
                     .find_map(|class| class.strip_prefix("videocontent-"))
             })
             .ok_or(FromHtmlError::MissingResponseKey)?
