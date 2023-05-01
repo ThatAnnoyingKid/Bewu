@@ -83,7 +83,6 @@ where
     K: std::hash::Hash + std::cmp::Eq,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // TODO: Provide more info
         f.debug_struct("AsyncTimedLruCache")
             .field("cache", &self.cache)
             .field("valid_for", &self.valid_for)

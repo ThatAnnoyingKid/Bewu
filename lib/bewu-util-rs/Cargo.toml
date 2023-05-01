@@ -38,3 +38,7 @@ async-timed-lru-cache = [
     "tokio",
     "tokio/sync",
 ]
+async-timed-cache-cell = [
+    "tokio",
+    "tokio/sync",
+]

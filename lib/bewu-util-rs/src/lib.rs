@@ -22,3 +22,8 @@ pub use self::parse_ffmpeg_time::*;
 mod async_timed_lru_cache;
 #[cfg(feature = "async-timed-lru-cache")]
 pub use self::async_timed_lru_cache::*;
+
+#[cfg(feature = "async-timed-cache-cell")]
+mod async_timed_cache_cell;
+#[cfg(feature = "async-timed-cache-cell")]
+pub use self::async_timed_cache_cell::*;
