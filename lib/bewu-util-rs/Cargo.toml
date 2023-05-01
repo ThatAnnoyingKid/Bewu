@@ -7,6 +7,7 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 anyhow = { version = "1.0.71", optional = true }
 fd-lock = { version = "3.0.12", optional = true }
+lru = { version = "*", optional = true }
 tokio = { version = "1.28.0", optional = true }
 tokio-stream = { version = "0.1.14", optional = true }
 tokio-util = { version = "0.7.8", optional = true }
@@ -31,4 +32,9 @@ state-update-channel = [
 ]
 parse-ffmpeg-time = [
     "anyhow",
+]
+async-timed-lru-cache = [
+    "lru",
+    "tokio",
+    "tokio/sync",
 ]
