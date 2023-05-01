@@ -5,9 +5,9 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-anyhow = "1.0.70"
+anyhow = "1.0.71"
 async-rusqlite = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs", features = [ "bundled" ] }
-axum = "0.6.16"
+axum = "0.6.18"
 bewu-util = { path = "../lib/bewu-util-rs", features = ["abort-join-handle", "state-update-channel", "parse-ffmpeg-time", "async-lock-file"] }
 fd-lock = "3.0.12"
 kitsu = { path = "../lib/kitsu-rs", features = [ "rustls-tls" ], default-features = false }
@@ -15,13 +15,13 @@ nd-util = { git = "https://github.com/nathaniel-daniel/nd-util-rs" }
 pikadick-util = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs", features = [ "request_map", "arc_anyhow_error" ] }
 serde = { version = "1.0.160", features = ["derive"] }
 serde_json = "1.0.96"
-tokio = { version = "1.27.0", features = [ "rt", "rt-multi-thread", "signal", "macros" ] }
+tokio = { version = "1.28.0", features = [ "rt", "rt-multi-thread", "signal", "macros" ] }
 tokio-ffmpeg-cli = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs" }
-tokio-stream = "0.1.12"
+tokio-stream = "0.1.14"
 toml = "0.7.3"
 tower = "0.4.13"
 tower-http = { version = "0.4.0", features = [ "fs", "trace" ] }
 tracing = "0.1.37"
-tracing-subscriber = { version = "0.3.16", features = [ "env-filter" ] }
+tracing-subscriber = { version = "0.3.17", features = [ "env-filter" ] }
 url = "2.3.1"
 vidstreaming = { path = "../lib/vidstreaming-rs", features = [ "rustls-tls" ], default-features = false }
