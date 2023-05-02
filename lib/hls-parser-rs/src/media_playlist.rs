@@ -5,7 +5,6 @@ use crate::UriReferenceStr;
 use crate::UriReferenceString;
 use crate::EXT_INF_TAG;
 use crate::EXT_M3U_TAG;
-use crate::EXT_X_KEY_TAG;
 use crate::EXT_X_TARGET_DURATION_TAG;
 use crate::EXT_X_VERSION_TAG;
 use std::time::Duration;
@@ -29,12 +28,6 @@ pub struct MediaPlaylist {
 
     /// The playlist type
     pub playlist_type: Option<PlaylistType>,
-
-    /// The encryption method, if it was specified.
-    pub encryption_method: Option<Box<str>>,
-
-    /// The encryption uri, if it was specified.
-    pub encryption_uri: Option<Box<str>>,
 }
 
 impl std::str::FromStr for MediaPlaylist {
@@ -97,10 +90,6 @@ impl std::str::FromStr for MediaPlaylist {
                             media_sequence_number = Some(number);
                         }
                         Tag::ExtXKey { method, uri } => {
-                            if encryption_method.is_some() {
-                                return Err(Error::DuplicateTag { tag: EXT_X_KEY_TAG });
-                            }
-
                             // TODO: Apply encryption data to media segments individually
                             encryption_method = Some(method);
                             encryption_uri = uri;
@@ -141,6 +130,8 @@ impl std::str::FromStr for MediaPlaylist {
                     duration,
                     title,
                     uri: uri.into(),
+                    encryption_method: encryption_method.clone(),
+                    encryption_uri: encryption_uri.clone(),
                 })
             }
         }
@@ -157,9 +148,6 @@ impl std::str::FromStr for MediaPlaylist {
             version,
             media_sequence_number,
             playlist_type,
-
-            encryption_method,
-            encryption_uri,
         })
     }
 }
@@ -175,6 +163,12 @@ pub struct MediaSegment {
 
     /// The uri
     pub uri: UriReferenceString,
+
+    /// The encryption method, if it is present.
+    pub encryption_method: Option<Box<str>>,
+
+    /// The encryption uri, if it was specified.
+    pub encryption_uri: Option<Box<str>>,
 }
 
 #[cfg(test)]
@@ -224,6 +218,8 @@ mod test {
                         uri: UriReferenceStr::new("http://media.example.com/first.ts")
                             .unwrap()
                             .into(),
+                        encryption_method: None,
+                        encryption_uri: None,
                     },
                     MediaSegment {
                         duration: Duration::from_secs_f64(9.009),
@@ -231,6 +227,8 @@ mod test {
                         uri: UriReferenceStr::new("http://media.example.com/second.ts")
                             .unwrap()
                             .into(),
+                        encryption_method: None,
+                        encryption_uri: None,
                     },
                     MediaSegment {
                         duration: Duration::from_secs_f64(3.003),
@@ -238,6 +236,8 @@ mod test {
                         uri: UriReferenceStr::new("http://media.example.com/third.ts")
                             .unwrap()
                             .into(),
+                        encryption_method: None,
+                        encryption_uri: None,
                     }
                 ]
         );
@@ -279,8 +279,13 @@ mod test {
     fn parse_real_media_playlist_2() {
         let playlist: MediaPlaylist = REAL_MEDIA_PLAYLIST_2.parse().expect("failed to parse");
         assert!(playlist.version == Some(3));
-        assert!(playlist.encryption_method.as_deref() == Some("AES-128"));
-        assert!(playlist.encryption_uri.as_deref() == Some("https://example.com/test.bin"));
+        assert!(playlist
+            .media_segments
+            .iter()
+            .all(|segment| segment.encryption_method.as_deref() == Some("AES-128")));
+        assert!(playlist.media_segments.iter().all(
+            |segment| segment.encryption_uri.as_deref() == Some("https://example.com/test.bin")
+        ));
 
         dbg!(&playlist);
     }
