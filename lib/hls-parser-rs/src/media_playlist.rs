@@ -183,6 +183,11 @@ mod test {
         env!("CARGO_MANIFEST_DIR"),
         "/test_data/real-media-playlist-1.m3u8"
     ));
+    
+    const REAL_MEDIA_PLAYLIST_2: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/test_data/real-media-playlist-2.m3u8"
+    ));
 
     #[test]
     fn parse_simple_media_playlist() {
@@ -243,6 +248,14 @@ mod test {
     #[test]
     fn parse_real_media_playlist_1() {
         let playlist: MediaPlaylist = REAL_MEDIA_PLAYLIST_1.parse().expect("failed to parse");
+        assert!(playlist.version == Some(3));
+
+        dbg!(&playlist);
+    }
+    
+    #[test]
+    fn parse_real_media_playlist_2() {
+        let playlist: MediaPlaylist = REAL_MEDIA_PLAYLIST_2.parse().expect("failed to parse");
         assert!(playlist.version == Some(3));
 
         dbg!(&playlist);
