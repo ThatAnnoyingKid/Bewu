@@ -5,6 +5,7 @@ use crate::UriReferenceStr;
 use crate::UriReferenceString;
 use crate::EXT_INF_TAG;
 use crate::EXT_M3U_TAG;
+use crate::EXT_X_KEY_TAG;
 use crate::EXT_X_TARGET_DURATION_TAG;
 use crate::EXT_X_VERSION_TAG;
 use std::time::Duration;
@@ -28,6 +29,12 @@ pub struct MediaPlaylist {
 
     /// The playlist type
     pub playlist_type: Option<PlaylistType>,
+
+    /// The encryption method, if it was specified.
+    pub encryption_method: Option<Box<str>>,
+
+    /// The encryption uri, if it was specified.
+    pub encryption_uri: Option<Box<str>>,
 }
 
 impl std::str::FromStr for MediaPlaylist {
@@ -47,6 +54,8 @@ impl std::str::FromStr for MediaPlaylist {
         let mut version = None;
         let mut media_sequence_number = None;
         let mut playlist_type = None;
+        let mut encryption_method = None;
+        let mut encryption_uri = None;
 
         let mut ext_inf_tag = None;
         let mut media_segments = Vec::with_capacity(16);
@@ -87,8 +96,14 @@ impl std::str::FromStr for MediaPlaylist {
                             // TODO: Disallow dupes?
                             media_sequence_number = Some(number);
                         }
-                        Tag::ExtXKey {} => {
+                        Tag::ExtXKey { method, uri } => {
+                            if encryption_method.is_some() {
+                                return Err(Error::DuplicateTag { tag: EXT_X_KEY_TAG });
+                            }
+
                             // TODO: Apply encryption data to media segments individually
+                            encryption_method = Some(method);
+                            encryption_uri = uri;
                         }
                         Tag::ExtXAllowCache {} => {
                             // This was removed in spec, but is still allowed/may appear
@@ -142,6 +157,9 @@ impl std::str::FromStr for MediaPlaylist {
             version,
             media_sequence_number,
             playlist_type,
+
+            encryption_method,
+            encryption_uri,
         })
     }
 }
@@ -261,6 +279,8 @@ mod test {
     fn parse_real_media_playlist_2() {
         let playlist: MediaPlaylist = REAL_MEDIA_PLAYLIST_2.parse().expect("failed to parse");
         assert!(playlist.version == Some(3));
+        assert!(playlist.encryption_method.as_deref() == Some("AES-128"));
+        assert!(playlist.encryption_uri.as_deref() == Some("https://example.com/test.bin"));
 
         dbg!(&playlist);
     }
