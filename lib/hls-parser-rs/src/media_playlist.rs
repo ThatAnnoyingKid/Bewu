@@ -104,6 +104,10 @@ impl std::str::FromStr for MediaPlaylist {
                             // I interpret this as meaning that the server will stop updating the playlist,
                             // not that all future entries are invalid.
                         }
+                        Tag::ExtXIndependentSegments => {
+                            // TODO: It means "all media samples in a Media Segment can be decoded without information from other segments.  It applies to every Media Segment in the Playlist."
+                            // How to handle?
+                        }
                         _ => {
                             return Err(Error::InvalidTag);
                         }
@@ -183,7 +187,7 @@ mod test {
         env!("CARGO_MANIFEST_DIR"),
         "/test_data/real-media-playlist-1.m3u8"
     ));
-    
+
     const REAL_MEDIA_PLAYLIST_2: &str = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/test_data/real-media-playlist-2.m3u8"
@@ -252,7 +256,7 @@ mod test {
 
         dbg!(&playlist);
     }
-    
+
     #[test]
     fn parse_real_media_playlist_2() {
         let playlist: MediaPlaylist = REAL_MEDIA_PLAYLIST_2.parse().expect("failed to parse");

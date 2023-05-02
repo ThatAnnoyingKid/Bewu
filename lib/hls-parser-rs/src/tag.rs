@@ -5,6 +5,7 @@ use crate::VideoRange;
 use crate::EXT_INF_TAG;
 use crate::EXT_X_ALLOW_CACHE_TAG;
 use crate::EXT_X_ENDLIST_TAG;
+use crate::EXT_X_INDEPENDENT_SEGMENTS;
 use crate::EXT_X_KEY_TAG;
 use crate::EXT_X_MEDIA_SEQUENCE_TAG;
 use crate::EXT_X_PLAYLIST_TYPE_TAG;
@@ -176,6 +177,9 @@ pub(crate) enum Tag {
 
     /// The EXT-X-ENDLIST tag
     ExtXEndList,
+
+    /// The EXT-X-INDEPENDENT-SEGMENTS tag
+    ExtXIndependentSegments,
 }
 
 impl std::str::FromStr for Tag {
@@ -375,6 +379,8 @@ impl std::str::FromStr for Tag {
             Ok(Self::ExtXPlaylistType { playlist_type })
         } else if let Some(_line) = line.strip_prefix(EXT_X_ENDLIST_TAG) {
             Ok(Self::ExtXEndList)
+        } else if let Some(_line) = line.strip_prefix(EXT_X_INDEPENDENT_SEGMENTS) {
+            Ok(Self::ExtXIndependentSegments)
         } else {
             Err(ParseTagError::Unknown { line: line.into() })
         }
