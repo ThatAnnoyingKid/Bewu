@@ -28,6 +28,7 @@ const EXT_X_STREAM_INF_TAG: &str = "EXT-X-STREAM-INF";
 const EXT_X_ALLOW_CACHE_TAG: &str = "EXT-X-ALLOW-CACHE";
 const EXT_X_PLAYLIST_TYPE_TAG: &str = "EXT-X-PLAYLIST-TYPE";
 const EXT_X_ENDLIST_TAG: &str = "EXT-X-ENDLIST";
+const EXT_X_INDEPENDENT_SEGMENTS_TAG: &str = "EXT-X-INDEPENDENT-SEGMENTS";
 
 /// An error that may occur while parsing a video range
 #[derive(Debug)]

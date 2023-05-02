@@ -47,6 +47,8 @@ impl std::str::FromStr for MediaPlaylist {
         let mut version = None;
         let mut media_sequence_number = None;
         let mut playlist_type = None;
+        let mut encryption_method = None;
+        let mut encryption_uri = None;
 
         let mut ext_inf_tag = None;
         let mut media_segments = Vec::with_capacity(16);
@@ -87,8 +89,10 @@ impl std::str::FromStr for MediaPlaylist {
                             // TODO: Disallow dupes?
                             media_sequence_number = Some(number);
                         }
-                        Tag::ExtXKey {} => {
+                        Tag::ExtXKey { method, uri } => {
                             // TODO: Apply encryption data to media segments individually
+                            encryption_method = Some(method);
+                            encryption_uri = uri;
                         }
                         Tag::ExtXAllowCache {} => {
                             // This was removed in spec, but is still allowed/may appear
@@ -103,6 +107,10 @@ impl std::str::FromStr for MediaPlaylist {
                             // TODO: Investigate more
                             // I interpret this as meaning that the server will stop updating the playlist,
                             // not that all future entries are invalid.
+                        }
+                        Tag::ExtXIndependentSegments => {
+                            // TODO: It means "all media samples in a Media Segment can be decoded without information from other segments.  It applies to every Media Segment in the Playlist."
+                            // How to handle?
                         }
                         _ => {
                             return Err(Error::InvalidTag);
@@ -122,6 +130,8 @@ impl std::str::FromStr for MediaPlaylist {
                     duration,
                     title,
                     uri: uri.into(),
+                    encryption_method: encryption_method.clone(),
+                    encryption_uri: encryption_uri.clone(),
                 })
             }
         }
@@ -153,6 +163,12 @@ pub struct MediaSegment {
 
     /// The uri
     pub uri: UriReferenceString,
+
+    /// The encryption method, if it is present.
+    pub encryption_method: Option<Box<str>>,
+
+    /// The encryption uri, if it was specified.
+    pub encryption_uri: Option<Box<str>>,
 }
 
 #[cfg(test)]
@@ -184,6 +200,11 @@ mod test {
         "/test_data/real-media-playlist-1.m3u8"
     ));
 
+    const REAL_MEDIA_PLAYLIST_2: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/test_data/real-media-playlist-2.m3u8"
+    ));
+
     #[test]
     fn parse_simple_media_playlist() {
         let playlist: MediaPlaylist = SIMPLE_MEDIA_PLAYLIST.parse().expect("failed to parse");
@@ -197,6 +218,8 @@ mod test {
                         uri: UriReferenceStr::new("http://media.example.com/first.ts")
                             .unwrap()
                             .into(),
+                        encryption_method: None,
+                        encryption_uri: None,
                     },
                     MediaSegment {
                         duration: Duration::from_secs_f64(9.009),
@@ -204,6 +227,8 @@ mod test {
                         uri: UriReferenceStr::new("http://media.example.com/second.ts")
                             .unwrap()
                             .into(),
+                        encryption_method: None,
+                        encryption_uri: None,
                     },
                     MediaSegment {
                         duration: Duration::from_secs_f64(3.003),
@@ -211,6 +236,8 @@ mod test {
                         uri: UriReferenceStr::new("http://media.example.com/third.ts")
                             .unwrap()
                             .into(),
+                        encryption_method: None,
+                        encryption_uri: None,
                     }
                 ]
         );
@@ -244,6 +271,21 @@ mod test {
     fn parse_real_media_playlist_1() {
         let playlist: MediaPlaylist = REAL_MEDIA_PLAYLIST_1.parse().expect("failed to parse");
         assert!(playlist.version == Some(3));
+
+        dbg!(&playlist);
+    }
+
+    #[test]
+    fn parse_real_media_playlist_2() {
+        let playlist: MediaPlaylist = REAL_MEDIA_PLAYLIST_2.parse().expect("failed to parse");
+        assert!(playlist.version == Some(3));
+        assert!(playlist
+            .media_segments
+            .iter()
+            .all(|segment| segment.encryption_method.as_deref() == Some("AES-128")));
+        assert!(playlist.media_segments.iter().all(
+            |segment| segment.encryption_uri.as_deref() == Some("https://example.com/test.bin")
+        ));
 
         dbg!(&playlist);
     }

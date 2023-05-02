@@ -5,6 +5,7 @@ use crate::VideoRange;
 use crate::EXT_INF_TAG;
 use crate::EXT_X_ALLOW_CACHE_TAG;
 use crate::EXT_X_ENDLIST_TAG;
+use crate::EXT_X_INDEPENDENT_SEGMENTS_TAG;
 use crate::EXT_X_KEY_TAG;
 use crate::EXT_X_MEDIA_SEQUENCE_TAG;
 use crate::EXT_X_PLAYLIST_TYPE_TAG;
@@ -21,6 +22,8 @@ const RESOLUTION_ATTR: &str = "RESOLUTION";
 const FRAME_RATE_ATTR: &str = "FRAME-RATE";
 const VIDEO_RANGE_ATTR: &str = "VIDEO-RANGE";
 const NAME_ATTR: &str = "NAME";
+const METHOD_ATTR: &str = "METHOD";
+const URI_ATTR: &str = "URI";
 
 /// An error that may occur while parsing a tag
 #[derive(Debug, thiserror::Error)]
@@ -142,7 +145,10 @@ pub(crate) enum Tag {
     },
 
     /// The EXT-X-KEY tag
-    ExtXKey {},
+    ExtXKey {
+        method: Box<str>,
+        uri: Option<Box<str>>,
+    },
 
     /// The EXT-X-STREAM-INF tag
     ExtXStreamInf {
@@ -176,6 +182,9 @@ pub(crate) enum Tag {
 
     /// The EXT-X-ENDLIST tag
     ExtXEndList,
+
+    /// The EXT-X-INDEPENDENT-SEGMENTS tag
+    ExtXIndependentSegments,
 }
 
 impl std::str::FromStr for Tag {
@@ -218,37 +227,58 @@ impl std::str::FromStr for Tag {
             Ok(Self::ExtXMediaSequence { number })
         } else if let Some(line) = line.strip_prefix(EXT_X_KEY_TAG) {
             let line = line.strip_prefix(':').ok_or(ParseTagError::MissingColon)?;
+
             let mut method = None;
             let mut uri = None;
-            for pair in line.split(',') {
-                // TODO: Verify K/V
-                let (name, value) = pair.split_once('=').ok_or(ParseTagError::MissingEquals)?;
+
+            let mut parser = AttributeListParser::new(line);
+
+            loop {
+                let name = parser.parse_name()?;
+                parser.parse_equals()?;
 
                 // TODO: Verify proper attributes are supplied with respect to current attribute state
                 match name {
-                    "METHOD" => {
+                    METHOD_ATTR => {
+                        // TODO: Make enum
+                        let value = parser.parse_enumerated_string()?;
+
                         if method.is_some() {
                             return Err(ParseTagError::DuplicateAttribute { name: name.into() });
                         }
 
                         method = Some(value);
                     }
-                    "URI" => {
+                    URI_ATTR => {
+                        let value = parser.parse_quoted_string()?;
+
                         if uri.is_some() {
                             return Err(ParseTagError::DuplicateAttribute { name: name.into() });
                         }
                         uri = Some(value);
                     }
                     _ => {
-                        return Err(ParseTagError::UnknownAttributeValuePair {
-                            name: name.into(),
-                            value: value.into(),
-                        });
+                        return Err(ParseTagError::UnknownAttribute { name: name.into() });
+                    }
+                }
+
+                match parser.parse_comma() {
+                    Ok(()) => {}
+                    Err(AttributeListParseError::UnexpectedEnd) => {
+                        break;
+                    }
+                    Err(e) => {
+                        return Err(ParseTagError::from(e));
                     }
                 }
             }
 
-            Ok(Self::ExtXKey {})
+            let method = method.ok_or(ParseTagError::MissingAttribute { name: METHOD_ATTR })?;
+
+            Ok(Self::ExtXKey {
+                method: method.into(),
+                uri: uri.map(|uri| uri.into()),
+            })
         } else if let Some(line) = line.strip_prefix(EXT_X_STREAM_INF_TAG) {
             let line = line.strip_prefix(':').ok_or(ParseTagError::MissingColon)?;
 
@@ -375,6 +405,8 @@ impl std::str::FromStr for Tag {
             Ok(Self::ExtXPlaylistType { playlist_type })
         } else if let Some(_line) = line.strip_prefix(EXT_X_ENDLIST_TAG) {
             Ok(Self::ExtXEndList)
+        } else if let Some(_line) = line.strip_prefix(EXT_X_INDEPENDENT_SEGMENTS_TAG) {
+            Ok(Self::ExtXIndependentSegments)
         } else {
             Err(ParseTagError::Unknown { line: line.into() })
         }
