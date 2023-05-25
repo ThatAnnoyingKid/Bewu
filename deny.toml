@@ -33,6 +33,13 @@ license-files = [
     { path = "LICENSE", hash = 0x001c7e6c },
 ]
 
+[[licenses.clarify]]
+name = "rustls-webpki"
+expression = "ISC"
+license-files = [
+    { path = "LICENSE", hash = 0x001c7e6c },
+]
+
 [bans]
 multiple-versions = "warn"
 highlight = "all"
@@ -45,13 +52,13 @@ skip = [
     { name = "phf_codegen", version = "0.8.0" },
     { name = "phf", version = "0.8.0" },
     { name = "getrandom", version = "0.1.16" },
-    { name = "windows-sys", version = "0.42.0" },
     { name = "syn", version = "1.0.109" },
     { name = "windows_x86_64_msvc", version = "0.42.2" },
     { name = "windows-targets", version = "0.42.2" },
     { name = "windows-sys", version = "0.45.0" },
     { name = "regex-syntax", version = "0.6.29" },
-    { name = "ahash", version = "0.7.6" },
+    { name = "portable-atomic", version = "0.3.20" },
+    { name = "hashbrown", version = "0.12.3" },
 ]
 deny = []
 
