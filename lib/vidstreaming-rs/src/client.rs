@@ -119,15 +119,20 @@ mod test {
 
     #[tokio::test]
     async fn get_episode() {
+        let urls = [
+            "https://gogo-stream.com/videos/bleach-episode-366",
+            "https://anihdplay.com/videos/black-clover-tv-dub-episode-170",
+        ];
         let client = Client::new();
-        let url = "https://gogo-stream.com/videos/bleach-episode-366";
-        let res = client
-            .get_episode(url)
-            .await
-            .expect("failed to get episode");
+        for url in urls {
+            let episode = client
+                .get_episode(url)
+                .await
+                .expect("failed to get episode");
 
-        dbg!(&res);
-        assert!(!res.related_episodes.is_empty());
+            dbg!(&episode);
+            assert!(!episode.related_episodes.is_empty());
+        }
     }
 
     #[tokio::test]
