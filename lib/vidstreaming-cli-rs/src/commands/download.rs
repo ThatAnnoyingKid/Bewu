@@ -186,10 +186,13 @@ where
     let mut download_progress_bar = None;
     let mut remux_progress_bar = None;
     while let Some(message) = stream.next().await {
-        match message {
-            bewu_util::DownloadHlsMessage::Error { error } => {
+        let message = match message {
+            Ok(message) => message,
+            Err(error) => {
                 return Err(error);
             }
+        };
+        match message {
             bewu_util::DownloadHlsMessage::DownloadedMediaPlaylist { media_playlist } => {
                 let total = media_playlist.media_segments.len();
                 let progress_bar = indicatif::ProgressBar::new(u64::try_from(total)?);

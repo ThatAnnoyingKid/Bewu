@@ -5,10 +5,10 @@ use hls_parser::MasterPlaylist;
 use hls_parser::MediaPlaylist;
 use reqwest::Url;
 use std::fmt::Write;
-use std::fs::File;
-use std::io::Write as _;
 use std::path::Path;
 use std::sync::Arc;
+use tokio::fs::File;
+use tokio::io::AsyncWriteExt;
 use tokio::task::JoinSet;
 use tokio_stream::Stream;
 use tokio_stream::StreamExt;
@@ -16,9 +16,6 @@ use tokio_stream::StreamExt;
 /// A message about the state of a hls download.
 #[derive(Debug)]
 pub enum DownloadHlsMessage {
-    /// A fatal error occured
-    Error { error: anyhow::Error },
-
     /// Downloaded the given media playlist
     DownloadedMediaPlaylist { media_playlist: Arc<MediaPlaylist> },
 
@@ -40,11 +37,12 @@ pub enum DownloadHlsMessage {
 /// Perform a hls download.
 ///
 /// Returns a stream of events from the download.
+/// An error is considered fatal, and will be the last message from this stream if it occurs.
 pub fn download_hls<P>(
     client: reqwest::Client,
     url: &str,
     out_path: P,
-) -> anyhow::Result<impl Stream<Item = DownloadHlsMessage>>
+) -> anyhow::Result<impl Stream<Item = Result<DownloadHlsMessage, anyhow::Error>>>
 where
     P: AsRef<Path>,
 {
@@ -57,60 +55,29 @@ where
     // Needed to resolve relative media segment urls.
     let mut url = Url::parse(url).context("invalid url")?;
 
-    let stream = async_stream::stream! {
+    let stream = async_stream::try_stream! {
         // Create temp dir
-        match tokio::fs::create_dir(&temp_dir_path).await {
-            Ok(()) => {}
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
-            Err(error) => {
-                yield DownloadHlsMessage::Error {
-                    error: error.into(),
-                };
-                return;
-            }
-        }
-        let temp_dir_path = match tokio::fs::canonicalize(temp_dir_path)
+        try_create_dir(&temp_dir_path).await?;
+
+        // We sometimes generate long names for temp files.
+        // On Windows, this leads to issues with maximum path length.
+        // We get a UNC path by canonicalizing, which extends the maximum path length and alleviates this issue.
+        let temp_dir_path = tokio::fs::canonicalize(temp_dir_path)
             .await
-            .context("failed to canonicalize temp dir")
-        {
-            Ok(temp_dir_path) => temp_dir_path,
-            Err(error) => {
-                yield DownloadHlsMessage::Error {
-                    error,
-                };
-                return;
-            }
-        };
+            .context("failed to canonicalize temp dir")?;
 
         // Create lock file
         let lock_file = AsyncLockFile::create(temp_dir_lock_file_path)
             .await
-            .context("failed to create temp dir lock file");
-        let lock_file = match lock_file {
-            Ok(lock_file) => lock_file,
-            Err(error) => {
-                yield DownloadHlsMessage::Error {
-                    error,
-                };
-                return;
-            }
-        };
+            .context("failed to create temp dir lock file")?;
 
         // Lock temp dir.
         // This will prevent concurrent downloads to the same directory/file.
-        let locked = lock_file
+        // This lock should be held for the entire download.
+        lock_file
             .try_lock()
             .await
-            .context("failed to lock lock file");
-        match locked {
-            Ok(()) => {}
-            Err(error) => {
-                yield DownloadHlsMessage::Error {
-                    error,
-                };
-                return;
-            }
-        }
+            .context("failed to lock lock file")?;
 
         // TODO: Consider removing all entries in temp dir before donwloading.
         // However, we also key segment files uniquely per url.
@@ -121,18 +88,9 @@ where
         // Since we "own" it at this point, we should clean it up if we fail.
 
         // Get the playlist
-        let playlist_text_result = get_text(&client, url.as_str())
+        let mut playlist_text = get_text(&client, url.as_str())
             .await
-            .context("failed to download playlist");
-        let mut playlist_text = match playlist_text_result {
-            Ok(text) => text,
-            Err(error) => {
-                yield DownloadHlsMessage::Error {
-                    error,
-                };
-                return;
-            }
-        };
+            .context("failed to download playlist")?;
 
         // Try to parse a master playlist
         match playlist_text.parse::<MasterPlaylist>() {
@@ -144,45 +102,18 @@ where
                     .variant_streams
                     .iter()
                     .max_by_key(|stream| stream.bandwidth)
-                    .context("failed to select a variant stream");
-                let best_variant_stream = match best_variant_stream {
-                    Ok(best_variant_stream) => best_variant_stream,
-                    Err(error) => {
-                        yield DownloadHlsMessage::Error {
-                            error,
-                        };
-                        return;
-                    }
-                };
+                    .context("failed to select a variant stream")?;
 
                 // Overwrite url with media playlist url, so relative media segments will work later.
-                let maybe_url = match best_variant_stream.uri.to_iri() {
-                    Ok(absolute_uri) => Url::parse(absolute_uri.into()),
-                    Err(relative_uri) => url.join(relative_uri.into()),
-                };
-                url = match maybe_url {
-                    Ok(url) => url,
-                    Err(error) => {
-                        yield DownloadHlsMessage::Error {
-                            error: error.into(),
-                        };
-                        return;
-                    }
+                url = match best_variant_stream.uri.to_iri() {
+                    Ok(absolute_uri) => Url::parse(absolute_uri.into())?,
+                    Err(relative_uri) => url.join(relative_uri.into())?,
                 };
 
                 // Overwrite playlist text
-                let maybe_playlist_text = get_text(&client, url.as_str())
+                playlist_text = get_text(&client, url.as_str())
                     .await
-                    .context("failed to download playlist");
-                playlist_text = match maybe_playlist_text {
-                    Ok(playlist_text) => playlist_text,
-                    Err(error) => {
-                        yield DownloadHlsMessage::Error {
-                            error,
-                        };
-                        return;
-                    }
-                };
+                    .context("failed to download playlist")?;
             }
             Err(_error) => {
                 // TODO: Proper master playlist detection
@@ -193,16 +124,8 @@ where
         // Parse media playlist
         let media_playlist = playlist_text
             .parse::<MediaPlaylist>()
-            .context("invalid media playlist");
-        let media_playlist = match media_playlist {
-            Ok(media_playlist) => Arc::new(media_playlist),
-            Err(error) => {
-                yield DownloadHlsMessage::Error {
-                    error,
-                };
-                return;
-            }
-        };
+            .map(Arc::new)
+            .context("invalid media playlist")?;
 
         yield DownloadHlsMessage::DownloadedMediaPlaylist {
             media_playlist: media_playlist.clone(),
@@ -217,26 +140,14 @@ where
             // since we know we can concat them.
             // TODO: Improve codec detection or add support for more codecs.
             if !segment.uri.path_str().ends_with(".ts") {
-                yield DownloadHlsMessage::Error {
-                    error: anyhow!("segment does not end with \".ts\""),
-                };
-                return;
+                Err(anyhow!("media segment path does not end with \".ts\""))?;
             }
 
             let client = client.clone();
             let url = segment.uri.to_iri();
             let url = match url {
-                Ok(absolute_uri) => Url::parse(absolute_uri.into()),
-                Err(relative_uri) => base_url.join(relative_uri.into()),
-            };
-            let url = match url.context("invalid media segment url") {
-                Ok(url) => url,
-                Err(error) => {
-                    yield DownloadHlsMessage::Error {
-                        error,
-                    };
-                    return;
-                }
+                Ok(absolute_uri) => Url::parse(absolute_uri.into())?,
+                Err(relative_uri) => base_url.join(relative_uri.into())?,
             };
 
             // Generated to be unique for segment uri.
@@ -263,16 +174,10 @@ where
 
         // Process media segment download results
         while let Some(result) = join_set.join_next().await {
-            let result = result.context("failed to join task");
-            match result.and_then(std::convert::identity) {
-                Ok(()) => {}
-                Err(error) => {
-                    yield DownloadHlsMessage::Error {
-                        error,
-                    };
-                    return;
-                }
-            }
+            let result = result
+                .context("failed to join task")
+                .and_then(std::convert::identity);
+            result?;
 
             yield DownloadHlsMessage::DownloadedMediaSegment;
         }
@@ -288,42 +193,20 @@ where
         // Copy to intermediate ts file
         let concat_file_name = url_to_file_name(url.as_str());
         let concat_file_path = temp_dir_path.join(&concat_file_name);
+
         {
-            let concat_file_path = concat_file_path.clone();
-
-            let result = tokio::task::spawn_blocking(|| {
-                let dest_file = File::create(concat_file_path)?;
-                let mut dest_file = fd_lock::RwLock::new(dest_file);
-                {
-                    let mut dest_file = dest_file.write()?;
-
-                    for path in media_segment_paths {
-                        let mut src_file = File::open(path)?;
-                        std::io::copy(&mut src_file, &mut *dest_file)?;
-                    }
-                }
-                let mut dest_file = dest_file.into_inner();
-                dest_file.flush()?;
-                dest_file.sync_all()?;
-
-                anyhow::Ok(())
-            })
-            .await
-            .context("failed to join")
-            .and_then(std::convert::identity);
-            match result {
-                Ok(()) => {}
-                Err(error) => {
-                    yield DownloadHlsMessage::Error {
-                        error,
-                    };
-                    return;
-                }
+            let mut dest_file = File::create(&concat_file_path).await?;
+            for path in media_segment_paths {
+                let mut src_file = File::open(path).await?;
+                tokio::io::copy(&mut src_file, &mut dest_file).await?;
             }
+
+            dest_file.flush().await?;
+            dest_file.sync_all().await?;
         }
 
         // Remux concatenated file
-        let concat_stream = tokio_ffmpeg_cli::Builder::new()
+        let mut concat_stream = tokio_ffmpeg_cli::Builder::new()
             .audio_codec("copy")
             .video_codec("copy")
             .input(concat_file_path)
@@ -331,16 +214,7 @@ where
             .output(&temp_out_path)
             .overwrite(false)
             .spawn()
-            .context("failed to spawn ffmpeg");
-        let mut concat_stream = match concat_stream {
-            Ok(concat_stream) => concat_stream,
-            Err(error) => {
-                yield DownloadHlsMessage::Error {
-                    error,
-                };
-                return;
-            }
-        };
+            .context("failed to spawn ffmpeg")?;
 
         let mut last_error = Ok(());
         while let Some(event) = concat_stream.next().await {
@@ -379,50 +253,46 @@ where
         }
 
         if let Err(error) = last_error {
-            if let Err(error) = tokio::fs::remove_file(temp_out_path)
+            if let Err(error) = tokio::fs::remove_file(&temp_out_path)
                 .await
                 .context("failed to remove temp file")
             {
                 eprintln!("{error}");
             }
 
-            yield DownloadHlsMessage::Error {
-                error,
-            };
-            return;
+            Err(error)?;
         }
 
-        if let Err(error) = tokio::fs::rename(&temp_out_path, &out_path)
+        tokio::fs::rename(&temp_out_path, &out_path)
             .await
-            .context("failed to rename temp file")
-        {
-            yield DownloadHlsMessage::Error {
-                error,
-            };
-            return;
-        }
+            .context("failed to rename temp file")?;
 
-        if let Err(error) = lock_file.unlock().await.context("failed to unlock lock file") {
-            yield DownloadHlsMessage::Error {
-                error,
-            };
-            return;
-        }
+        lock_file.unlock().await.context("failed to unlock lock file")?;
+        // lock_file.shutdown()?;
 
-        if let Err(error) = tokio::fs::remove_dir_all(&temp_dir_path)
+        tokio::fs::remove_dir_all(&temp_dir_path)
             .await
-            .context("failed to remove temp dir")
-        {
-            yield DownloadHlsMessage::Error {
-                error,
-            };
-            return;
-        }
+            .context("failed to remove temp dir")?;
 
         yield DownloadHlsMessage::Done;
     };
 
     Ok(stream)
+}
+
+async fn try_create_dir<P>(path: P) -> std::io::Result<()>
+where
+    P: AsRef<Path>,
+{
+    match tokio::fs::create_dir(path).await {
+        Ok(()) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+        Err(error) => {
+            return Err(error);
+        }
+    }
+
+    Ok(())
 }
 
 async fn get_text(client: &reqwest::Client, url: &str) -> Result<String, reqwest::Error> {
