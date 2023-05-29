@@ -1,6 +1,7 @@
 use crate::AsyncLockFile;
 use anyhow::anyhow;
 use anyhow::Context;
+use hls_parser::MasterPlaylist;
 use hls_parser::MediaPlaylist;
 use reqwest::Url;
 use std::fmt::Write;
@@ -54,7 +55,7 @@ where
 
     // Parse url.
     // Needed to resolve relative media segment urls.
-    let url = Url::parse(url).context("invalid url")?;
+    let mut url = Url::parse(url).context("invalid url")?;
 
     let stream = async_stream::stream! {
         // Create temp dir
@@ -120,18 +121,10 @@ where
         // Since we "own" it at this point, we should clean it up if we fail.
 
         // Get the playlist
-        let playlist_text_result = async {
-            client
-                .get(url.as_str())
-                .send()
-                .await?
-                .error_for_status()?
-                .text()
-                .await
-        }
-        .await
-        .context("failed to download playlist");
-        let playlist_text = match playlist_text_result {
+        let playlist_text_result = get_text(&client, url.as_str())
+            .await
+            .context("failed to download playlist");
+        let mut playlist_text = match playlist_text_result {
             Ok(text) => text,
             Err(error) => {
                 yield DownloadHlsMessage::Error {
@@ -141,8 +134,63 @@ where
             }
         };
 
+        // Try to parse a master playlist
+        match playlist_text.parse::<MasterPlaylist>() {
+            Ok(master_playlist) => {
+                // Select the best variant stream
+                // TODO: Make user configurable
+                // TODO: Report selected stream.
+                let best_variant_stream = master_playlist
+                    .variant_streams
+                    .iter()
+                    .max_by_key(|stream| stream.bandwidth)
+                    .context("failed to select a variant stream");
+                let best_variant_stream = match best_variant_stream {
+                    Ok(best_variant_stream) => best_variant_stream,
+                    Err(error) => {
+                        yield DownloadHlsMessage::Error {
+                            error,
+                        };
+                        return;
+                    }
+                };
+
+                // Overwrite url with media playlist url, so relative media segments will work later.
+                let maybe_url = match best_variant_stream.uri.to_iri() {
+                    Ok(absolute_uri) => Url::parse(absolute_uri.into()),
+                    Err(relative_uri) => url.join(relative_uri.into()),
+                };
+                url = match maybe_url {
+                    Ok(url) => url,
+                    Err(error) => {
+                        yield DownloadHlsMessage::Error {
+                            error: error.into(),
+                        };
+                        return;
+                    }
+                };
+
+                // Overwrite playlist text
+                let maybe_playlist_text = get_text(&client, url.as_str())
+                    .await
+                    .context("failed to download playlist");
+                playlist_text = match maybe_playlist_text {
+                    Ok(playlist_text) => playlist_text,
+                    Err(error) => {
+                        yield DownloadHlsMessage::Error {
+                            error,
+                        };
+                        return;
+                    }
+                };
+            }
+            Err(_error) => {
+                // TODO: Proper master playlist detection
+                // Since we failed, assume we have a media playlist and pass through.
+            }
+        }
+
         // Parse media playlist
-        // TODO: Support master playlist.
         let media_playlist = playlist_text
             .parse::<MediaPlaylist>()
             .context("invalid media playlist");
@@ -375,6 +423,16 @@ where
     };
 
     Ok(stream)
+}
+
+async fn get_text(client: &reqwest::Client, url: &str) -> Result<String, reqwest::Error> {
+    client
+        .get(url)
+        .send()
+        .await?
+        .error_for_status()?
+        .text()
+        .await
 }
 
 fn url_to_file_name(url: &str) -> String {

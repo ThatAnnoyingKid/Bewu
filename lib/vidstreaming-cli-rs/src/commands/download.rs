@@ -1,7 +1,6 @@
 use anyhow::bail;
 use anyhow::ensure;
 use anyhow::Context;
-use hls_parser::MasterPlaylist;
 use std::collections::HashMap;
 use std::path::Path;
 use std::path::PathBuf;
@@ -180,31 +179,7 @@ where
         return Ok(());
     }
 
-    let playlist_text = client
-        .get(url)
-        .send()
-        .await?
-        .error_for_status()?
-        .text()
-        .await?;
-    let playlist: MasterPlaylist = playlist_text.parse().context("failed to parse playlist")?;
-    let best_variant_stream = playlist
-        .variant_streams
-        .iter()
-        .max_by_key(|stream| stream.bandwidth)
-        .context("failed to select a variant stream")?;
-
-    let playlist_uri = match best_variant_stream.uri.to_iri() {
-        Ok(absolute_uri) => Url::parse(absolute_uri.into())?,
-        Err(relative_uri) => {
-            let url = Url::parse(url)?;
-            Url::options()
-                .base_url(Some(&url))
-                .parse(relative_uri.into())?
-        }
-    };
-
-    let stream = bewu_util::download_hls(client.clone(), playlist_uri.as_str(), path)?;
+    let stream = bewu_util::download_hls(client.clone(), url, path)?;
     tokio::pin!(stream);
 
     let mut stream_duration: Option<Duration> = None;
