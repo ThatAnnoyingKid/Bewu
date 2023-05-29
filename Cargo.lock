@@ -1312,7 +1312,6 @@ version = "0.0.0"
 source = "git+https://github.com/ThatAnnoyingKid/pikadick-rs#1e1e25779f28ad3a30079d2728c60a32de742993"
 dependencies = [
  "anyhow",
- "futures",
  "nd-util",
 ]
 

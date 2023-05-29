@@ -1,18 +1,19 @@
 use super::Database;
 use super::KitsuAnime;
 use anyhow::Context;
+use bewu_util::AsyncTimedLruCache;
 use pikadick_util::ArcAnyhowError;
-use pikadick_util::RequestMap;
 use std::num::NonZeroU64;
 use std::sync::Arc;
+use std::time::Duration;
 use std::time::SystemTime;
 use tokio::task::JoinSet;
 use tracing::error;
 use tracing::info;
 use tracing::warn;
 
-type SearchResult = Result<Arc<[KitsuAnime]>, anyhow::Error>;
-type SearchRequestMap = RequestMap<Box<str>, Result<Arc<[KitsuAnime]>, ArcAnyhowError>>;
+type SearchCache = AsyncTimedLruCache<Box<str>, SearchResult>;
+type SearchResult<E = ArcAnyhowError> = Result<Arc<[KitsuAnime]>, E>;
 
 #[derive(Debug)]
 enum KitsuTaskMessage {
@@ -21,7 +22,7 @@ enum KitsuTaskMessage {
     },
     Search {
         query: Box<str>,
-        tx: tokio::sync::oneshot::Sender<SearchResult>,
+        tx: tokio::sync::oneshot::Sender<SearchResult<anyhow::Error>>,
     },
     GetAnime {
         id: NonZeroU64,
@@ -47,7 +48,7 @@ impl KitsuTask {
         }
     }
 
-    pub async fn search(&self, query: &str) -> SearchResult {
+    pub async fn search(&self, query: &str) -> SearchResult<anyhow::Error> {
         let (tx, rx) = tokio::sync::oneshot::channel();
         self.tx
             .send(KitsuTaskMessage::Search {
@@ -102,8 +103,8 @@ async fn kitsu_task_impl(
 ) {
     let client = kitsu::Client::new();
 
-    let search_request_map = Arc::new(RequestMap::new());
-    let get_anime_request_map = Arc::new(RequestMap::new());
+    let search_cache = Arc::new(AsyncTimedLruCache::new(128, Duration::from_secs(0)));
+    let get_anime_cache = Arc::new(AsyncTimedLruCache::new(128, Duration::from_secs(0)));
     let mut join_set = JoinSet::new();
 
     loop {
@@ -116,11 +117,11 @@ async fn kitsu_task_impl(
                     }
                     Some(KitsuTaskMessage::Search { query, tx }) => {
                         let client = client.clone();
-                        let search_request_map = search_request_map.clone();
+                        let search_cache = search_cache.clone();
                         let database = database.clone();
                         join_set.spawn(search_task_impl(
                             client,
-                            search_request_map,
+                            search_cache,
                             database,
                             query,
                             tx,
@@ -128,11 +129,11 @@ async fn kitsu_task_impl(
                     }
                     Some(KitsuTaskMessage::GetAnime { id, tx }) => {
                         let client = client.clone();
-                        let get_anime_request_map = get_anime_request_map.clone();
+                        let get_anime_cache = get_anime_cache.clone();
                         let database = database.clone();
                         join_set.spawn(get_anime_task_impl(
                             client,
-                            get_anime_request_map,
+                            get_anime_cache,
                             database,
                             id,
                             tx
@@ -157,13 +158,13 @@ async fn kitsu_task_impl(
 
 async fn search_task_impl(
     client: kitsu::Client,
-    search_request_map: Arc<SearchRequestMap>,
+    search_cache: Arc<SearchCache>,
     database: Database,
     query: Box<str>,
-    tx: tokio::sync::oneshot::Sender<SearchResult>,
+    tx: tokio::sync::oneshot::Sender<SearchResult<anyhow::Error>>,
 ) {
-    let result = search_request_map
-        .get_or_fetch(query.clone(), || async move {
+    let result = search_cache
+        .get(query.clone(), || async move {
             let anime_result = kitsu_search(&client, &query)
                 .await
                 .map_err(ArcAnyhowError::new);
@@ -192,13 +193,13 @@ async fn search_task_impl(
 
 async fn get_anime_task_impl(
     client: kitsu::Client,
-    request_map: Arc<RequestMap<NonZeroU64, Result<Arc<KitsuAnime>, ArcAnyhowError>>>,
+    request_map: Arc<AsyncTimedLruCache<NonZeroU64, Result<Arc<KitsuAnime>, ArcAnyhowError>>>,
     database: Database,
     id: NonZeroU64,
     tx: tokio::sync::oneshot::Sender<anyhow::Result<Arc<KitsuAnime>>>,
 ) {
     let result = request_map
-        .get_or_fetch(id, || async move {
+        .get(id, || async move {
             let maybe_anime_result = database
                 .get_kitsu_anime(id)
                 .await
@@ -235,7 +236,7 @@ async fn get_anime_task_impl(
 // Fetch Wrappers
 //
 
-async fn kitsu_search(client: &kitsu::Client, query: &str) -> SearchResult {
+async fn kitsu_search(client: &kitsu::Client, query: &str) -> SearchResult<anyhow::Error> {
     info!("searching for \"{query}\"");
 
     let document = client.search(query).await?;
