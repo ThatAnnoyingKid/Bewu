@@ -2420,7 +2420,6 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
- "tokio-ffmpeg-cli",
  "tokio-stream",
  "url",
  "vidstreaming",

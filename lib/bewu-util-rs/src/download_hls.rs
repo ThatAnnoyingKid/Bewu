@@ -68,11 +68,14 @@ where
                 return;
             }
         }
-        let temp_dir_path = match tokio::fs::canonicalize(temp_dir_path).await.context("failed to canonicalize temp dir") {
+        let temp_dir_path = match tokio::fs::canonicalize(temp_dir_path)
+            .await
+            .context("failed to canonicalize temp dir")
+        {
             Ok(temp_dir_path) => temp_dir_path,
             Err(error) => {
                 yield DownloadHlsMessage::Error {
-                    error: error.into(),
+                    error,
                 };
                 return;
             }

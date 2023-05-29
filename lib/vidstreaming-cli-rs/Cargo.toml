@@ -11,16 +11,15 @@ path = "src/main.rs"
 [dependencies]
 anyhow = "1.0.71"
 argh = "0.1.10"
-bewu-util = { path = "../bewu-util-rs", features = ["parse-ffmpeg-time"] }
+bewu-util = { path = "../bewu-util-rs", features = ["parse-ffmpeg-time", "download-hls"] }
 fd-lock = "3.0.12"
 hls-parser = { path = "../hls-parser-rs" }
 indicatif = "0.17.3"
-nd-util = { git = "https://github.com/nathaniel-daniel/nd-util-rs", features = [ "download-to-path" ] }
+nd-util = { git = "https://github.com/nathaniel-daniel/nd-util-rs" }
 reqwest = { version = "0.11.18", default-features = false }
 serde = { version = "1.0.163", features = ["derive"] }
 serde_json = "1.0.96"
 tokio = { version = "1.28.1", features = ["rt-multi-thread", "fs"] }
-tokio-ffmpeg-cli = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs" }
 tokio-stream = "0.1.14"
 url = "2.3.1"
 vidstreaming = { path = "../vidstreaming-rs" }
