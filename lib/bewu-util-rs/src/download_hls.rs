@@ -63,7 +63,9 @@ where
 
     let stream = async_stream::try_stream! {
         // Create temp dir
-        try_create_dir(&temp_dir_path).await?;
+        try_create_dir(&temp_dir_path)
+            .await
+            .with_context(|| format!("failed to create temp dir \"{}\"", temp_dir_path.display()))?;
 
         // We sometimes generate long names for temp files.
         // On Windows, this leads to issues with maximum path length.
