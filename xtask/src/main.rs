@@ -8,12 +8,6 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use walkdir::WalkDir;
 
-#[cfg(windows)]
-const NPM_BIN: &str = "npm.cmd";
-
-#[cfg(not(windows))]
-const NPM_BIN: &str = "npm";
-
 #[derive(Debug, argh::FromArgs)]
 #[argh(description = "a build tool")]
 struct Options {
@@ -43,7 +37,7 @@ struct FmtOptions {}
 
 fn build_frontend(metadata: &cargo_metadata::Metadata) -> anyhow::Result<()> {
     let frontend_dir = metadata.workspace_root.join("frontend");
-    let output = Command::new(NPM_BIN)
+    let output = xtask_util::npm()
         .current_dir(&frontend_dir)
         .args(["run", "build"])
         .status()
@@ -120,7 +114,7 @@ fn main() -> anyhow::Result<()> {
         Subcommand::Fmt(_options) => {
             let metadata = MetadataCommand::new().exec()?;
 
-            let output = Command::new(NPM_BIN)
+            let output = xtask_util::npm()
                 .current_dir(&metadata.workspace_root.join("frontend"))
                 .args(["run", "fmt"])
                 .status()
