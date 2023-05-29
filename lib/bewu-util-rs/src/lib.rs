@@ -27,3 +27,8 @@ pub use self::async_timed_lru_cache::*;
 mod async_timed_cache_cell;
 #[cfg(feature = "async-timed-cache-cell")]
 pub use self::async_timed_cache_cell::*;
+
+#[cfg(feature = "download-hls")]
+mod download_hls;
+#[cfg(feature = "download-hls")]
+pub use self::download_hls::*;
