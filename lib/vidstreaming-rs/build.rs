@@ -1,5 +1,5 @@
 const BASE_URL_KEY: &str = "VIDSTREAMING_RS_BASE_URL";
-const DEFAULT_BASE_URL_VALUE: &str = "https://gogohd.net/";
+const DEFAULT_BASE_URL_VALUE: &str = "https://anihdplay.com/";
 
 fn main() {
     let base_url_value = std::env::var(BASE_URL_KEY);
@@ -8,7 +8,7 @@ fn main() {
         Ok(v) => v,
         Err(std::env::VarError::NotPresent) => DEFAULT_BASE_URL_VALUE,
         Err(std::env::VarError::NotUnicode(_)) => {
-            panic!("the environment variable `{BASE_URL_KEY}` is invalid unicode");
+            panic!("the environment variable \"{BASE_URL_KEY}\" is not valid unicode");
         }
     };
 
