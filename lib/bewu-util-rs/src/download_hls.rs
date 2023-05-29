@@ -199,7 +199,7 @@ where
             join_set.spawn(async move {
                 if tokio::fs::try_exists(&out_path)
                     .await
-                    .with_context(|| format!("failed to check if temp file at \"{}\" exists", out_path.display()))? 
+                    .with_context(|| format!("failed to check if temp file at \"{}\" exists", out_path.display()))?
                 {
                     return Ok(());
                 }
@@ -375,9 +375,8 @@ where
 }
 
 fn url_to_file_name(url: &str) -> String {
-    
     let mut file_name = String::with_capacity(url.len());
-    
+
     // File names on windows cannot exceed 248 bytes.
     // We add some room for path extension changes.
     // TODO: This may introduce clashes, use a hashing algo here.
@@ -385,7 +384,7 @@ fn url_to_file_name(url: &str) -> String {
         if file_name.len() == 248 {
             break;
         }
-        
+
         match c {
             '\\' | '/' | ':' | 'x' | '?' | '"' | '<' | '>' => {
                 let c = u32::from(c);
