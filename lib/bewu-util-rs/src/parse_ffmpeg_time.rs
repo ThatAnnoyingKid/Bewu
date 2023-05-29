@@ -7,10 +7,16 @@ use anyhow::Context;
 pub fn parse_ffmpeg_time(time: &str) -> anyhow::Result<u64> {
     // TODO: Find out why negative time can occur
     let mut iter = time.trim_start_matches('-').split(':');
-    
+
     let hours = iter.next().context("missing hours")?;
-    let hours: u64 = hours.parse().with_context(|| format!("failed to parse hours \"{hours}\""))?;
-    let minutes: u64 = iter.next().context("missing minutes")?.parse().context("failed to parse minutes")?;
+    let hours: u64 = hours
+        .parse()
+        .with_context(|| format!("failed to parse hours \"{hours}\""))?;
+    let minutes: u64 = iter
+        .next()
+        .context("missing minutes")?
+        .parse()
+        .context("failed to parse minutes")?;
 
     let seconds = iter.next().context("missing seconds")?;
     let (seconds, microseconds) = seconds
