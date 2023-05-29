@@ -184,6 +184,7 @@ where
 
     let mut stream_duration: Option<Duration> = None;
     let mut download_progress_bar = None;
+    let mut concat_progress_bar = None;
     let mut remux_progress_bar = None;
     while let Some(message) = stream.next().await {
         let message = match message {
@@ -196,7 +197,7 @@ where
             bewu_util::DownloadHlsMessage::DownloadedMediaPlaylist { media_playlist } => {
                 let total = media_playlist.media_segments.len();
                 let progress_bar = indicatif::ProgressBar::new(u64::try_from(total)?);
-                let progress_bar_style_template = "[Time = {elapsed_precise} | ETA = {eta_precise}] Downloading segments {wide_bar}";
+                let progress_bar_style_template = "[Time = {elapsed_precise} | ETA = {eta_precise}] Downloading media segments {wide_bar}";
                 let progress_bar_style = indicatif::ProgressStyle::default_bar()
                     .template(progress_bar_style_template)
                     .expect("invalid progress bar style template");
@@ -219,6 +220,26 @@ where
             }
             bewu_util::DownloadHlsMessage::DownloadedAllMediaSegments => {
                 if let Some(progress_bar) = download_progress_bar.as_ref() {
+                    progress_bar.finish();
+
+                    let progress_bar =
+                        indicatif::ProgressBar::new(progress_bar.length().unwrap_or(0));
+                    let progress_bar_style_template =
+                        "[Time = {elapsed_precise} | ETA = {eta_precise}] Concatenating media segments {wide_bar}";
+                    let progress_bar_style = indicatif::ProgressStyle::default_bar()
+                        .template(progress_bar_style_template)
+                        .expect("invalid progress bar style template");
+                    progress_bar.set_style(progress_bar_style);
+                    concat_progress_bar = Some(progress_bar);
+                }
+            }
+            bewu_util::DownloadHlsMessage::ConcatenatedMediaSegment => {
+                if let Some(progress_bar) = concat_progress_bar.as_ref() {
+                    progress_bar.inc(1);
+                }
+            }
+            bewu_util::DownloadHlsMessage::ConcatenatedAllMediaSegments => {
+                if let Some(progress_bar) = concat_progress_bar.as_ref() {
                     progress_bar.finish();
                 }
 

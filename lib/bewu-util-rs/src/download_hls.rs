@@ -25,6 +25,12 @@ pub enum DownloadHlsMessage {
     /// Downloaded all media segments
     DownloadedAllMediaSegments,
 
+    /// Concatenated a media segment
+    ConcatenatedMediaSegment,
+
+    /// Concatenated all media segments
+    ConcatenatedAllMediaSegments,
+
     /// FFMPeg is now at the specified out time.
     FfmpegProgress { out_time: u64 },
 
@@ -199,10 +205,14 @@ where
             for path in media_segment_paths {
                 let mut src_file = File::open(path).await?;
                 tokio::io::copy(&mut src_file, &mut dest_file).await?;
+
+                yield DownloadHlsMessage::ConcatenatedMediaSegment;
             }
 
             dest_file.flush().await?;
             dest_file.sync_all().await?;
+
+            yield DownloadHlsMessage::ConcatenatedAllMediaSegments;
         }
 
         // Remux concatenated file
@@ -267,8 +277,11 @@ where
             .await
             .context("failed to rename temp file")?;
 
+        // Unlock and shutdown lock file
+        // TODO: Can this be moved after the dir removal to prevent a race?
         lock_file.unlock().await.context("failed to unlock lock file")?;
-        // lock_file.shutdown()?;
+        lock_file.shutdown().await?;
+        drop(lock_file);
 
         tokio::fs::remove_dir_all(&temp_dir_path)
             .await
@@ -306,13 +319,15 @@ async fn get_text(client: &reqwest::Client, url: &str) -> Result<String, reqwest
 }
 
 fn url_to_file_name(url: &str) -> String {
+    const MAX_FILE_NAME_LEN: usize = 248;
+
     let mut file_name = String::with_capacity(url.len());
 
     // File names on windows cannot exceed 248 bytes.
     // We add some room for path extension changes.
     // TODO: This may introduce clashes, use a hashing algo here.
     for c in url.chars() {
-        if file_name.len() == 248 {
+        if file_name.len() == MAX_FILE_NAME_LEN {
             break;
         }
 
