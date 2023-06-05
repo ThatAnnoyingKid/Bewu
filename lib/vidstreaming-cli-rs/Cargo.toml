@@ -12,7 +12,7 @@ path = "src/main.rs"
 anyhow = "1.0.71"
 argh = "0.1.10"
 bewu-util = { path = "../bewu-util-rs", features = ["download-hls"] }
-indicatif = "0.17.3"
+indicatif = "0.17.5"
 nd-util = { git = "https://github.com/nathaniel-daniel/nd-util-rs" }
 reqwest = { version = "0.11.18", default-features = false }
 serde = { version = "1.0.163", features = ["derive"] }
