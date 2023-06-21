@@ -9,6 +9,6 @@ anyhow = "1.0.71"
 argh = "0.1.10"
 cargo_metadata = "0.15.4"
 ctrlc = "3.4.0"
-tower-http = "0.4.0"
+tower-http = "0.4.1"
 walkdir = "2.3.3"
 xtask-util = { path = "../lib/xtask-util-rs" }
