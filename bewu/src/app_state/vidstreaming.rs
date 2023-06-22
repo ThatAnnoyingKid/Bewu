@@ -67,9 +67,7 @@ impl VidstreamingTask {
         &self,
         anime_slug: &str,
         episode_number: u32,
-    ) -> anyhow::Result<
-        impl Stream<Item = bewu_util::StateUpdateItem<CloneDownloadState>>,
-    > {
+    ) -> anyhow::Result<impl Stream<Item = bewu_util::StateUpdateItem<CloneDownloadState>>> {
         let (tx, rx) = tokio::sync::oneshot::channel();
         self.tx
             .send(VidstreamingTaskMessage::StartEpisodeDownload {

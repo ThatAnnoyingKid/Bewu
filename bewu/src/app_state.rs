@@ -329,13 +329,8 @@ impl AppState {
     pub async fn start_vidstreaming_episode_download(
         &self,
         id: NonZeroU64,
-    ) -> anyhow::Result<
-        impl Stream<
-            Item = bewu_util::StateUpdateItem<
-                VidstreamingDownloadState,
-            >,
-        >,
-    > {
+    ) -> anyhow::Result<impl Stream<Item = bewu_util::StateUpdateItem<VidstreamingDownloadState>>>
+    {
         let episode = self.get_kitsu_episode(id).await?;
         let anime = self.get_kitsu_anime(episode.anime_id).await?;
 
