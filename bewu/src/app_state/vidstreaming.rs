@@ -26,7 +26,7 @@ pub enum VidstreamingTaskMessage {
         episode_number: u32,
 
         tx: tokio::sync::oneshot::Sender<
-            anyhow::Result<bewu_util::StateUpdateRx<CloneDownloadState, DownloadStateUpdate>>,
+            anyhow::Result<bewu_util::StateUpdateRx<CloneDownloadState>>,
         >,
     },
     GetEpisode {
@@ -68,7 +68,7 @@ impl VidstreamingTask {
         anime_slug: &str,
         episode_number: u32,
     ) -> anyhow::Result<
-        impl Stream<Item = bewu_util::StateUpdateItem<CloneDownloadState, DownloadStateUpdate>>,
+        impl Stream<Item = bewu_util::StateUpdateItem<CloneDownloadState>>,
     > {
         let (tx, rx) = tokio::sync::oneshot::channel();
         self.tx
@@ -271,7 +271,7 @@ impl CloneDownloadState {
     }
 }
 
-impl bewu_util::StateChannelState for CloneDownloadState {
+impl bewu_util::StateUpdateChannelState for CloneDownloadState {
     type Update = DownloadStateUpdate;
 
     fn apply_update(&self, update: &Self::Update) {
@@ -288,7 +288,7 @@ async fn download_task_impl(
     anime_slug: Box<str>,
     episode_number: u32,
     path: Arc<Path>,
-    download_state: bewu_util::StateUpdateTx<CloneDownloadState, DownloadStateUpdate>,
+    download_state: bewu_util::StateUpdateTx<CloneDownloadState>,
 ) {
     // Guess vidstreaming url
     let url = format!("https://gogohd.net/videos/{anime_slug}-episode-{episode_number}");

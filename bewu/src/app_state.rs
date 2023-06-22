@@ -333,7 +333,6 @@ impl AppState {
         impl Stream<
             Item = bewu_util::StateUpdateItem<
                 VidstreamingDownloadState,
-                VidstreamingDownloadStateUpdate,
             >,
         >,
     > {

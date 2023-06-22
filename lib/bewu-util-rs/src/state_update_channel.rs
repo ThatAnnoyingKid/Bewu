@@ -5,21 +5,21 @@ use tokio_util::sync::ReusableBoxFuture;
 
 /// Either the state if the channel lagged, or an update.
 #[derive(Debug)]
-pub enum StateUpdateItem<S, U> {
+pub enum StateUpdateItem<S>
+where
+    S: StateUpdateChannelState,
+{
     /// The channel lagged.
     State(S),
 
     /// The update.
-    Update(U),
+    Update(S::Update),
 }
 
 /// Make a bounded channel.
-pub fn state_update_channel<S>(
-    capacity: usize,
-    state: S,
-) -> (StateUpdateTx<S, S::Update>, StateUpdateRx<S, S::Update>)
+pub fn state_update_channel<S>(capacity: usize, state: S) -> (StateUpdateTx<S>, StateUpdateRx<S>)
 where
-    S: StateChannelState,
+    S: StateUpdateChannelState,
 {
     let (tx, rx) = tokio::sync::broadcast::channel(capacity);
 
@@ -37,7 +37,7 @@ where
 }
 
 /// A state that is changed via updates.
-pub trait StateChannelState: Clone {
+pub trait StateUpdateChannelState: Clone {
     /// The update that can be applied to this state.
     type Update: Clone;
 
@@ -52,17 +52,20 @@ pub trait StateChannelState: Clone {
 
 /// The sender for state updates.
 #[derive(Debug, Clone)]
-pub struct StateUpdateTx<S, U> {
+pub struct StateUpdateTx<S>
+where
+    S: StateUpdateChannelState,
+{
     state: S,
-    stream: tokio::sync::broadcast::Sender<U>,
+    stream: tokio::sync::broadcast::Sender<S::Update>,
 }
 
-impl<S, U> StateUpdateTx<S, U>
+impl<S> StateUpdateTx<S>
 where
-    S: StateChannelState<Update = U>,
+    S: StateUpdateChannelState,
 {
     /// Send an update and apply it to the state.
-    pub fn send(&self, update: impl Into<U>) {
+    pub fn send(&self, update: impl Into<S::Update>) {
         let update = update.into();
 
         self.state.apply_update(&update);
@@ -74,29 +77,32 @@ where
 
 /// The receiver for state updates
 #[derive(Debug)]
-pub struct StateUpdateRx<S, U> {
+pub struct StateUpdateRx<S>
+where
+    S: StateUpdateChannelState,
+{
     state: S,
-    stream: tokio::sync::broadcast::Receiver<U>,
+    stream: tokio::sync::broadcast::Receiver<S::Update>,
 
     cloned: bool,
 }
 
-impl<S, U> StateUpdateRx<S, U>
+impl<S> StateUpdateRx<S>
 where
-    S: Clone,
-    U: Clone,
+    S: StateUpdateChannelState,
 {
-    /*
-    /// Get a reference to the state.
+    /// Get an immutable reference to the state.
+    ///
+    /// Use of this method is discouraged,
+    /// as state inspection should typically be done through listening on the channel.
     pub fn state_ref(&self) -> &S {
         &self.state
     }
-    */
 
     /// Get the next update in this stream, or the state if lagging occured.
     ///
     /// If an update occurs, the state should already be updated.
-    pub async fn recv(&mut self) -> Option<StateUpdateItem<S, U>> {
+    pub async fn recv(&mut self) -> Option<StateUpdateItem<S>> {
         // If this rx handle was cloned, we might have lost messages.
         // Re-send the state and clear the flag.
         if self.cloned {
@@ -113,22 +119,21 @@ where
     }
 }
 
-impl<S, U> StateUpdateRx<S, U>
+impl<S> StateUpdateRx<S>
 where
-    S: Clone + Send + 'static,
-    U: Clone + Send + 'static,
+    S: StateUpdateChannelState + Send + 'static,
+    S::Update: Send,
 {
-    pub fn into_stream(self) -> StateUpdateStream<S, U> {
+    pub fn into_stream(self) -> StateUpdateStream<S> {
         StateUpdateStream {
             future: ReusableBoxFuture::new(make_stream_future(self)),
         }
     }
 }
 
-impl<S, U> Clone for StateUpdateRx<S, U>
+impl<S> Clone for StateUpdateRx<S>
 where
-    S: Clone,
-    U: Clone,
+    S: StateUpdateChannelState,
 {
     fn clone(&self) -> Self {
         Self {
@@ -139,31 +144,33 @@ where
     }
 }
 
-async fn make_stream_future<S, U>(
-    mut rx: StateUpdateRx<S, U>,
-) -> (Option<StateUpdateItem<S, U>>, StateUpdateRx<S, U>)
+async fn make_stream_future<S>(
+    mut rx: StateUpdateRx<S>,
+) -> (Option<StateUpdateItem<S>>, StateUpdateRx<S>)
 where
-    S: Clone,
-    U: Clone,
+    S: StateUpdateChannelState,
 {
     let item = rx.recv().await;
     (item, rx)
 }
 
-type StreamFutureOutput<S, U> = (Option<StateUpdateItem<S, U>>, StateUpdateRx<S, U>);
+type StreamFutureOutput<S> = (Option<StateUpdateItem<S>>, StateUpdateRx<S>);
 
 /// A Stream wrapper for a state update receiver
 #[derive(Debug)]
-pub struct StateUpdateStream<S, U> {
-    future: ReusableBoxFuture<'static, StreamFutureOutput<S, U>>,
+pub struct StateUpdateStream<S>
+where
+    S: StateUpdateChannelState,
+{
+    future: ReusableBoxFuture<'static, StreamFutureOutput<S>>,
 }
 
-impl<S, U> Stream for StateUpdateStream<S, U>
+impl<S> Stream for StateUpdateStream<S>
 where
-    S: StateChannelState<Update = U> + Send + 'static,
-    U: Clone + Send + 'static,
+    S: StateUpdateChannelState + Send + 'static,
+    S::Update: Send,
 {
-    type Item = StateUpdateItem<S, U>;
+    type Item = StateUpdateItem<S>;
 
     fn poll_next(
         mut self: std::pin::Pin<&mut Self>,
