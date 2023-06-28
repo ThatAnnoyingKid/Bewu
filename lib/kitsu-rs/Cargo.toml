@@ -12,7 +12,7 @@ thiserror = "1.0.40"
 url = { version = "2.4.0", features = [ "serde" ] }
 
 [dev-dependencies]
-tokio = { version = "1.28.1", features = [ "macros" ] }
+tokio = { version = "1.29.0", features = [ "macros" ] }
 
 [features]
 default = ["rustls-tls"]
