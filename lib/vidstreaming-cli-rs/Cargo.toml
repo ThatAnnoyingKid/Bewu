@@ -15,7 +15,7 @@ bewu-util = { path = "../bewu-util-rs", features = ["download-hls"] }
 indicatif = "0.17.5"
 nd-util = { git = "https://github.com/nathaniel-daniel/nd-util-rs" }
 reqwest = { version = "0.11.18", default-features = false }
-serde = { version = "1.0.175", features = ["derive"] }
+serde = { version = "1.0.176", features = ["derive"] }
 serde_json = "1.0.103"
 tokio = { version = "1.29.1", features = ["rt-multi-thread", "fs"] }
 tokio-stream = "0.1.14"
