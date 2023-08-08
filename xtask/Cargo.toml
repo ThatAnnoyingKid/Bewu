@@ -6,7 +6,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 anyhow = "1.0.72"
-argh = "0.1.10"
+argh = "0.1.11"
 cargo_metadata = "0.17.0"
 ctrlc = "3.4.0"
 tower-http = "0.4.3"
