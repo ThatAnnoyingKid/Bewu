@@ -10,7 +10,7 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = "1.0.72"
-argh = "0.1.11"
+argh = "0.1.12"
 bewu-util = { path = "../bewu-util-rs", features = ["download-hls"] }
 indicatif = "0.17.6"
 nd-util = { git = "https://github.com/nathaniel-daniel/nd-util-rs" }
