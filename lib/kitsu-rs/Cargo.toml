@@ -8,7 +8,7 @@ license = "MIT OR Apache-2.0"
 json-api = { git = "https://github.com/adumbidiot/json_api-rs" }
 serde = { version = "1.0.183", features = [ "derive" ] }
 serde_json = "1.0.104"
-thiserror = "1.0.44"
+thiserror = "1.0.45"
 url = { version = "2.4.0", features = [ "serde" ] }
 
 [dev-dependencies]
