@@ -9,7 +9,7 @@ name = "vidstreaming"
 path = "src/main.rs"
 
 [dependencies]
-anyhow = "1.0.73"
+anyhow = "1.0.74"
 argh = "0.1.12"
 bewu-util = { path = "../bewu-util-rs", features = ["download-hls"] }
 indicatif = "0.17.6"
