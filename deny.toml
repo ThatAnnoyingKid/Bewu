@@ -56,6 +56,7 @@ skip = [
     { name = "phf_generator", version = "0.10.0" },
     { name = "phf", version = "0.10.1" },
     { name = "indexmap", version = "1.9.3" },
+    { name = "socket2", version = "0.4.9" },
 ]
 deny = []
 

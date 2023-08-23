@@ -73,6 +73,14 @@ where
         // TODO: How to handle no receivers?
         let _ = self.stream.send(update).is_ok();
     }
+
+    /// Get an immutable reference to the state.
+    ///
+    /// Use of this method is discouraged,
+    /// as state updates should typically be done through sending updates.
+    pub fn state_ref(&self) -> &S {
+        &self.state
+    }
 }
 
 /// The receiver for state updates
