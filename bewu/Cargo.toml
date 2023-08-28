@@ -13,7 +13,7 @@ fd-lock = "4.0.0"
 kitsu = { path = "../lib/kitsu-rs", features = [ "rustls-tls" ], default-features = false }
 nd-util = { git = "https://github.com/nathaniel-daniel/nd-util-rs" }
 pikadick-util = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs", features = [ "arc_anyhow_error" ] }
-serde = { version = "1.0.185", features = ["derive"] }
+serde = { version = "1.0.186", features = ["derive"] }
 serde_json = "1.0.105"
 tokio = { version = "1.32.0", features = [ "rt", "rt-multi-thread", "signal", "macros" ] }
 tokio-ffmpeg-cli = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs" }
