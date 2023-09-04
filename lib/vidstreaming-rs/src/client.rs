@@ -120,7 +120,7 @@ mod test {
     #[tokio::test]
     async fn get_episode() {
         let urls = [
-            "https://gogo-stream.com/videos/bleach-episode-366",
+            "https://anihdplay.com/videos/bleach-episode-366",
             "https://anihdplay.com/videos/black-clover-tv-dub-episode-170",
         ];
         let client = Client::new();
@@ -138,7 +138,7 @@ mod test {
     #[tokio::test]
     async fn get_video_player() {
         let client = Client::new();
-        let url = "https://gogo-stream.com/videos/bleach-episode-366";
+        let url = "https://anihdplay.com/videos/bleach-episode-366";
         let episode = client
             .get_episode(url)
             .await

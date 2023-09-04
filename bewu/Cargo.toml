@@ -13,15 +13,15 @@ fd-lock = "4.0.0"
 kitsu = { path = "../lib/kitsu-rs", features = [ "rustls-tls" ], default-features = false }
 nd-util = { git = "https://github.com/nathaniel-daniel/nd-util-rs" }
 pikadick-util = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs", features = [ "arc_anyhow_error" ] }
-serde = { version = "1.0.186", features = ["derive"] }
+serde = { version = "1.0.188", features = ["derive"] }
 serde_json = "1.0.105"
 tokio = { version = "1.32.0", features = [ "rt", "rt-multi-thread", "signal", "macros" ] }
 tokio-ffmpeg-cli = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs" }
 tokio-stream = "0.1.14"
 toml = "0.7.6"
 tower = "0.4.13"
-tower-http = { version = "0.4.3", features = [ "fs", "trace" ] }
+tower-http = { version = "0.4.4", features = [ "fs", "trace" ] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = [ "env-filter" ] }
-url = "2.4.0"
+url = "2.4.1"
 vidstreaming = { path = "../lib/vidstreaming-rs", features = [ "rustls-tls" ], default-features = false }
