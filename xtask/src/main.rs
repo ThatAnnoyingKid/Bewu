@@ -8,6 +8,8 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use walkdir::WalkDir;
 
+const SERVER_BIN: &str = "bewu";
+
 #[derive(Debug, argh::FromArgs)]
 #[argh(description = "a build tool")]
 struct Options {
@@ -80,7 +82,7 @@ fn main() -> anyhow::Result<()> {
 
             let output = Command::new("cargo")
                 .current_dir(metadata.workspace_root.join("bewu"))
-                .args(["build", "--bin", "bewu"])
+                .args(["build", "--bin", SERVER_BIN])
                 .status()
                 .context("failed to spawn command")?;
             ensure!(output.success(), "failed to run cargo");
@@ -98,7 +100,7 @@ fn main() -> anyhow::Result<()> {
             let handle = std::thread::spawn(move || {
                 let output = Command::new("cargo")
                     .current_dir(metadata.workspace_root.join("bewu"))
-                    .args(["run", "--bin", "bewu"])
+                    .args(["run", "--bin", SERVER_BIN])
                     .stdout(Stdio::inherit())
                     .stdin(Stdio::null())
                     .stderr(Stdio::inherit())
