@@ -1,3 +1,4 @@
+use anyhow::bail;
 use anyhow::ensure;
 use anyhow::Context;
 use cargo_metadata::MetadataCommand;
@@ -142,33 +143,55 @@ fn main() -> anyhow::Result<()> {
         Subcommand::BuildDeb(_options) => {
             let metadata = MetadataCommand::new().exec()?;
 
+            //let target = "x86_64-unknown-linux-gnu";
+            let target = "aarch64-unknown-linux-gnu";
+
             let target_dir = metadata.workspace_root.join("target");
 
             let mut sysroot =
                 xtask_util::DebianSysrootBuilder::new(target_dir.join("debian-sysroot").into())
                     .build()?;
 
-            sysroot.install("libc6-dev")?;
-            sysroot.install("libc6")?;
-            sysroot.install("linux-libc-dev")?;
-            sysroot.install("libgcc-12-dev")?;
-            sysroot.install("libgcc-s1")?;
-            sysroot.install("libgcc-s1-amd64-cross")?;
+            let (debian_arch_short_name, gcc_triple) = match target {
+                "x86_64-unknown-linux-gnu" => ("amd64", "x86_64-linux-gnu"),
+                "aarch64-unknown-linux-gnu" => ("arm64", "aarch64-linux-gnu"),
+                _ => bail!("unsupported target \"{target}\""),
+            };
+
+            sysroot.install(&format!("libc6-{debian_arch_short_name}-cross"))?;
+            sysroot.install("gcc-12-cross-base")?;
+
+            sysroot.install(&format!("libc6-dev-{debian_arch_short_name}-cross"))?;
+            sysroot.install(&format!("linux-libc-dev-{debian_arch_short_name}-cross"))?;
+
+            sysroot.install(&format!("libitm1-{debian_arch_short_name}-cross"))?;
+            sysroot.install(&format!("liblsan0-{debian_arch_short_name}-cross"))?;
+            sysroot.install(&format!("libgomp1-{debian_arch_short_name}-cross"))?;
+            sysroot.install(&format!("libatomic1-{debian_arch_short_name}-cross"))?;
+            if debian_arch_short_name != "arm64" {
+                sysroot.install(&format!("libquadmath0-{debian_arch_short_name}-cross"))?;
+            }
+            if debian_arch_short_name != "amd64" {
+                sysroot.install(&format!("libhwasan0-{debian_arch_short_name}-cross"))?;
+            }
+            sysroot.install(&format!("libtsan2-{debian_arch_short_name}-cross"))?;
+            sysroot.install(&format!("libasan8-{debian_arch_short_name}-cross"))?;
+            sysroot.install(&format!("libubsan1-{debian_arch_short_name}-cross"))?;
+            sysroot.install(&format!("libgcc-s1-{debian_arch_short_name}-cross"))?;
+            sysroot.install(&format!("libgcc-12-dev-{debian_arch_short_name}-cross"))?;
 
             // TODO: Build frontend
 
             let (_guard, sysroot) = sysroot.get_sysroot_path()?;
             let sysroot = sysroot.to_str().context("sysroot path is not unicode")?;
-            let cflags = format!("--sysroot {sysroot} --gcc-toolchain={sysroot} -static-libgcc");
-            let rustflags = format!("-Clinker=clang -Clink-args=--target=x86_64-linux-gnu -Clink-args=-fuse-ld=lld -Clink-args=--sysroot={sysroot}");
+            let cflags = format!("--sysroot {sysroot}/usr/{gcc_triple}");
+            let rustflags = format!("-Clinker=clang -Clink-args=--target={target} -Clink-args=--sysroot={sysroot} -Clink-args=--gcc-toolchain={sysroot}/usr -Clink-args=-fuse-ld=lld");
             let output = Command::new("cargo")
                 .current_dir(metadata.workspace_root.join("server"))
                 .args([
-                    "build",
-                    "--bin",
-                    SERVER_BIN,
-                    "--target",
-                    "x86_64-unknown-linux-gnu",
+                    "build", //"--release",
+                    "--bin", SERVER_BIN, // bin
+                    "--target", target, // target
                 ])
                 .env("CC", "clang")
                 .env("CFLAGS", cflags)

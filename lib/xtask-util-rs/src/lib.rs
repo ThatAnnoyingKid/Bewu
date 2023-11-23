@@ -198,7 +198,8 @@ impl DebianSysroot {
                     );
                 }
             }
-            let package_file_name = package_file_name.context("missing package")?;
+            let package_file_name = package_file_name
+                .with_context(|| format!("missing package \"{install_package_name}\""))?;
 
             let deb_url = format!("{}/{}", self.repository_url, package_file_name);
             let response = self.http.get(&deb_url).call()?;
@@ -250,18 +251,27 @@ impl DebianSysroot {
                     // This is a hack for windows.
                     if header.entry_type().is_symlink() {
                         let src = entry.link_name()?.context("missing link name")?;
-
-                        // TODO: How to handle?
-                        if !src.starts_with("/") {
-                            continue;
-                        }
-
-                        let src = path.join(src.strip_prefix("/")?);
                         let dst = path.join(entry.path()?);
+
+                        let src = match src.strip_prefix("/") {
+                            Ok(src) => src.to_owned(),
+                            Err(_err) => dst.parent().context("dst missing parent")?.join(src),
+                        };
+                        let src = path.join(src);
 
                         if let Some(parent) = dst.parent() {
                             std::fs::create_dir_all(parent)?;
                         }
+
+                        let src_metadata = std::fs::metadata(&src).with_context(|| {
+                            format!("failed to get metadata for file at {}", src.display())
+                        })?;
+
+                        // TODO: Copy Dir
+                        if src_metadata.is_dir() {
+                            continue;
+                        }
+
                         std::fs::copy(&src, &dst).with_context(|| {
                             format!(
                                 "failed to symlink-copy \"{}\" to \"{}\"",
