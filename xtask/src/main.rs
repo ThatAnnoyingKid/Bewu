@@ -23,6 +23,7 @@ enum Subcommand {
     Build(BuildOptions),
     Run(RunOptions),
     Fmt(FmtOptions),
+    BuildDeb(BuildDebOptions),
 }
 
 #[derive(Debug, argh::FromArgs)]
@@ -36,6 +37,14 @@ struct RunOptions {}
 #[derive(Debug, argh::FromArgs)]
 #[argh(subcommand, name = "fmt", description = "fmt the entire project")]
 struct FmtOptions {}
+
+#[derive(Debug, argh::FromArgs)]
+#[argh(
+    subcommand,
+    name = "build-deb",
+    description = "build a deb for this project"
+)]
+struct BuildDebOptions {}
 
 fn build_frontend(metadata: &cargo_metadata::Metadata) -> anyhow::Result<()> {
     let frontend_dir = metadata.workspace_root.join("frontend");
@@ -126,6 +135,44 @@ fn main() -> anyhow::Result<()> {
             let output = Command::new("cargo")
                 .current_dir(&metadata.workspace_root)
                 .args(["fmt", "--all"])
+                .status()
+                .context("failed to spawn command")?;
+            ensure!(output.success(), "failed to run cargo");
+        }
+        Subcommand::BuildDeb(_options) => {
+            let metadata = MetadataCommand::new().exec()?;
+
+            let target_dir = metadata.workspace_root.join("target");
+
+            let mut sysroot =
+                xtask_util::DebianSysrootBuilder::new(target_dir.join("debian-sysroot").into())
+                    .build()?;
+
+            sysroot.install("libc6-dev")?;
+            sysroot.install("libc6")?;
+            sysroot.install("linux-libc-dev")?;
+            sysroot.install("libgcc-12-dev")?;
+            sysroot.install("libgcc-s1")?;
+            sysroot.install("libgcc-s1-amd64-cross")?;
+
+            // TODO: Build frontend
+
+            let (_guard, sysroot) = sysroot.get_sysroot_path()?;
+            let sysroot = sysroot.to_str().context("sysroot path is not unicode")?;
+            let cflags = format!("--sysroot {sysroot} --gcc-toolchain={sysroot} -static-libgcc");
+            let rustflags = format!("-Clinker=clang -Clink-args=--target=x86_64-linux-gnu -Clink-args=-fuse-ld=lld -Clink-args=--sysroot={sysroot}");
+            let output = Command::new("cargo")
+                .current_dir(metadata.workspace_root.join("server"))
+                .args([
+                    "build",
+                    "--bin",
+                    SERVER_BIN,
+                    "--target",
+                    "x86_64-unknown-linux-gnu",
+                ])
+                .env("CC", "clang")
+                .env("CFLAGS", cflags)
+                .env("RUSTFLAGS", rustflags)
                 .status()
                 .context("failed to spawn command")?;
             ensure!(output.success(), "failed to run cargo");
