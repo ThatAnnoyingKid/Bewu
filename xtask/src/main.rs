@@ -47,7 +47,7 @@ fn build_frontend(metadata: &cargo_metadata::Metadata) -> anyhow::Result<()> {
     ensure!(output.success(), "failed to run npm");
 
     let dist_dir = frontend_dir.join("dist");
-    let public_dir = metadata.workspace_root.join("bewu/public");
+    let public_dir = metadata.workspace_root.join("server/public");
     for entry in WalkDir::new(&dist_dir) {
         let entry = entry?;
         let entry_path = entry.path();
@@ -81,7 +81,7 @@ fn main() -> anyhow::Result<()> {
             build_frontend(&metadata)?;
 
             let output = Command::new("cargo")
-                .current_dir(metadata.workspace_root.join("bewu"))
+                .current_dir(metadata.workspace_root.join("server"))
                 .args(["build", "--bin", SERVER_BIN])
                 .status()
                 .context("failed to spawn command")?;
@@ -99,7 +99,7 @@ fn main() -> anyhow::Result<()> {
 
             let handle = std::thread::spawn(move || {
                 let output = Command::new("cargo")
-                    .current_dir(metadata.workspace_root.join("bewu"))
+                    .current_dir(metadata.workspace_root.join("server"))
                     .args(["run", "--bin", SERVER_BIN])
                     .stdout(Stdio::inherit())
                     .stdin(Stdio::null())
