@@ -2788,6 +2788,7 @@ dependencies = [
  "ar",
  "flate2",
  "fslock",
+ "rusqlite",
  "tar",
  "ureq",
  "xz2",

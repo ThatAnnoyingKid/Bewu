@@ -2,11 +2,30 @@ use anyhow::bail;
 use anyhow::ensure;
 use anyhow::Context;
 use flate2::read::GzDecoder;
+use rusqlite::named_params;
+use rusqlite::OptionalExtension;
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::Read;
 use std::io::Write;
 use std::path::PathBuf;
 use xz2::read::XzDecoder;
+
+const SETUP_SQL: &str = "
+PRAGMA foreign_keys = ON;
+
+CREATE TABLE IF NOT EXISTS packages (
+	name TEXT NOT NULL PRIMARY KEY,
+	file_name TEXT NOT NULL,
+	depends TEXT
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS installed_packages (
+	name TEXT NOT NULL PRIMARY KEY,
+	file_name TEXT NOT NULL,
+	depends TEXT
+) STRICT;
+";
 
 /// A builder for a debian sysroot.
 ///
@@ -88,7 +107,8 @@ impl DebianSysrootBuilder {
         let mut lock = fslock::LockFile::open(&lock_path)?;
         lock.lock()?;
 
-        // let database = rusqlite::Connection::open(path.join("database.db"))?;
+        let database = rusqlite::Connection::open(path.join("database.db"))?;
+        database.execute_batch(SETUP_SQL)?;
 
         let http = ureq::Agent::new();
 
@@ -96,12 +116,14 @@ impl DebianSysrootBuilder {
             path,
             lock,
 
-            // database,
+            database,
             http,
 
             repository_url: self.repository_url.clone(),
             release: self.release.clone(),
             arch: self.arch.clone(),
+
+            pending_install: HashSet::new(),
         })
     }
 }
@@ -112,18 +134,20 @@ pub struct DebianSysroot {
     path: PathBuf,
     lock: fslock::LockFile,
 
-    // database: rusqlite::Connection,
+    database: rusqlite::Connection,
     http: ureq::Agent,
 
     repository_url: String,
     release: String,
     arch: String,
+
+    pending_install: HashSet<String>,
 }
 
 impl DebianSysroot {
     /// Refresh the on-disk package list.
-    pub fn update(&self) -> anyhow::Result<()> {
-        let package_list_path = self.get_package_list_path();
+    pub fn update(&mut self) -> anyhow::Result<()> {
+        let package_list_path = self.path.join("Packages.txt");
 
         if package_list_path.try_exists()? {
             return Ok(());
@@ -142,39 +166,152 @@ impl DebianSysroot {
         let mut contents = String::new();
         response_reader.read_to_string(&mut contents)?;
 
-        let tmp_file_path = self.path.join("Packages.txt.tmp");
-        let mut tmp_file = File::create(&tmp_file_path)?;
-        tmp_file.write_all(contents.as_bytes())?;
-        tmp_file.flush()?;
-        tmp_file.sync_all()?;
-        drop(tmp_file);
+        let transaction = self.database.transaction()?;
+        {
+            let mut statement = transaction.prepare_cached(
+                "
+				INSERT OR REPLACE INTO packages (
+					name,
+					file_name,
+					depends
+				) VALUES (
+					:name,
+					:file_name,
+					:depends
+				);
+				",
+            )?;
+            for package in parse_package_list(&contents) {
+                let package = package?;
 
-        std::fs::rename(tmp_file_path, package_list_path)?;
+                let depends = if package.depends.is_empty() {
+                    None
+                } else {
+                    Some(package.depends.join(", "))
+                };
+
+                statement.execute(named_params! {
+                    ":name": package.name,
+                    ":file_name": package.file_name,
+                    ":depends": depends,
+                })?;
+            }
+        }
+
+        transaction.commit()?;
+
+        File::create(package_list_path)?;
 
         Ok(())
     }
 
+    /// Get the info for a given package by name.
+    fn get_package_info(&mut self, name: &str) -> anyhow::Result<Option<PackageInfo>> {
+        let mut statement = self.database.prepare_cached(
+            "
+			SELECT
+				name,
+				file_name, 
+				depends
+			FROM
+				packages
+			where
+				name = :name;
+		",
+        )?;
+        statement
+            .query_row(
+                named_params! {
+                    ":name": name,
+                },
+                |row| {
+                    let name = row.get("name")?;
+                    let file_name = row.get("file_name")?;
+                    let depends: Option<String> = row.get("depends")?;
+
+                    let depends = match depends {
+                        Some(depends) => depends.split(", ").map(Into::into).collect(),
+                        None => Vec::new(),
+                    };
+
+                    Ok(anyhow::Ok(PackageInfo {
+                        name,
+                        file_name,
+                        depends,
+                    }))
+                },
+            )
+            .optional()?
+            .transpose()
+    }
+
+    /// Get the installed package info.
+    fn get_installed_package_info(&mut self, name: &str) -> anyhow::Result<Option<PackageInfo>> {
+        let mut statement = self.database.prepare_cached(
+            "
+			SELECT
+				name,
+				file_name, 
+				depends
+			FROM
+				installed_packages
+			where
+				name = :name;
+		",
+        )?;
+        statement
+            .query_row(
+                named_params! {
+                    ":name": name,
+                },
+                |row| {
+                    let name = row.get("name")?;
+                    let file_name = row.get("file_name")?;
+                    let depends: String = row.get("depends")?;
+
+                    let depends = depends.split(", ").map(Into::into).collect();
+
+                    Ok(anyhow::Ok(PackageInfo {
+                        name,
+                        file_name,
+                        depends,
+                    }))
+                },
+            )
+            .optional()?
+            .transpose()
+    }
+
     /// Install a package, if needed.
-    pub fn install(&self, install_package_name: &str) -> anyhow::Result<()> {
+    pub fn install(&mut self, install_package_name: &str) -> anyhow::Result<()> {
+        if self
+            .get_installed_package_info(install_package_name)?
+            .is_some()
+        {
+            return Ok(());
+        }
+
+        if !self.pending_install.insert(install_package_name.into()) {
+            return Ok(());
+        }
+
         self.update()?;
 
-        let package_list_path = self.get_package_list_path();
+        let package = self
+            .get_package_info(install_package_name)?
+            .with_context(|| format!("missing package \"{install_package_name}\""))?;
+
+        for dep in package.depends.iter() {
+            let package = dep.split_once(' ').map(|(name, _rest)| name).unwrap_or(dep);
+
+            self.install(package)?;
+        }
 
         let downloaded_package_path = self
             .path
             .join("packages")
             .join(format!("{install_package_name}.deb"));
         if !downloaded_package_path.try_exists()? {
-            let packages = std::fs::read_to_string(package_list_path)?;
-            let package = parse_package_list(&packages)
-                .find(|maybe_package| {
-                    maybe_package
-                        .as_ref()
-                        .map(|package| package.name == install_package_name)
-                        .unwrap_or(true)
-                })
-                .with_context(|| format!("missing package \"{install_package_name}\""))??;
-
             let deb_url = format!("{}/{}", self.repository_url, package.file_name);
             let response = self.http.get(&deb_url).call()?;
             ensure!(response.status() == 200);
@@ -266,12 +403,28 @@ impl DebianSysroot {
             count += 1;
         }
 
-        Ok(())
-    }
+        self.database
+            .prepare_cached(
+                "
+					INSERT OR REPLACE INTO installed_packages (
+						name,
+						file_name,
+						depends
+					) VALUES (
+						:name, 
+						:file_name,
+						:depends
+					);
+				
+				",
+            )?
+            .execute(named_params! {
+                ":name": package.name,
+                ":file_name": package.file_name,
+                ":depends": package.depends.join(", "),
+            })?;
 
-    /// Get a path to the package list.
-    fn get_package_list_path(&self) -> PathBuf {
-        self.path.join("Packages.txt")
+        Ok(())
     }
 
     /// Get the path to the sysroot.
@@ -288,19 +441,19 @@ impl Drop for DebianSysroot {
 
 /// Package info
 #[derive(Debug)]
-pub struct PackageInfo<'a> {
+pub struct PackageInfo {
     /// The name of the package
-    pub name: &'a str,
+    pub name: String,
 
     /// The package file name
-    pub file_name: &'a str,
+    pub file_name: String,
 
     /// Package dependencies
-    pub depends: Vec<&'a str>,
+    pub depends: Vec<String>,
 }
 
 /// Parse a package list.
-pub fn parse_package_list(input: &str) -> impl Iterator<Item = anyhow::Result<PackageInfo>> {
+pub fn parse_package_list(input: &str) -> impl Iterator<Item = anyhow::Result<PackageInfo>> + '_ {
     input.trim_end().split("\n\n").map(|package| {
         let mut name = None;
         let mut file_name = None;
@@ -330,9 +483,11 @@ pub fn parse_package_list(input: &str) -> impl Iterator<Item = anyhow::Result<Pa
                 _ => {}
             }
         }
-        let name = name.context("missing package name")?;
-        let file_name = file_name.context("missing package file name")?;
-        let depends = depends.unwrap_or("").split(", ").collect();
+        let name = name.context("missing package name")?.into();
+        let file_name = file_name.context("missing package file name")?.into();
+        let depends = depends
+            .map(|depends| depends.split(", ").map(Into::into).collect())
+            .unwrap_or(Vec::new());
 
         Ok(PackageInfo {
             name,

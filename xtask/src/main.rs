@@ -143,12 +143,12 @@ fn main() -> anyhow::Result<()> {
         Subcommand::BuildDeb(_options) => {
             let metadata = MetadataCommand::new().exec()?;
 
-            //let target = "x86_64-unknown-linux-gnu";
-            let target = "aarch64-unknown-linux-gnu";
+            let target = "x86_64-unknown-linux-gnu";
+            // let target = "aarch64-unknown-linux-gnu";
 
             let target_dir = metadata.workspace_root.join("target");
 
-            let sysroot =
+            let mut sysroot =
                 xtask_util::DebianSysrootBuilder::new(target_dir.join("debian-sysroot").into())
                     .build()?;
 
@@ -159,25 +159,8 @@ fn main() -> anyhow::Result<()> {
             };
 
             sysroot.install(&format!("libc6-{debian_arch_short_name}-cross"))?;
-            sysroot.install("gcc-12-cross-base")?;
-
             sysroot.install(&format!("libc6-dev-{debian_arch_short_name}-cross"))?;
             sysroot.install(&format!("linux-libc-dev-{debian_arch_short_name}-cross"))?;
-
-            sysroot.install(&format!("libitm1-{debian_arch_short_name}-cross"))?;
-            sysroot.install(&format!("liblsan0-{debian_arch_short_name}-cross"))?;
-            sysroot.install(&format!("libgomp1-{debian_arch_short_name}-cross"))?;
-            sysroot.install(&format!("libatomic1-{debian_arch_short_name}-cross"))?;
-            if debian_arch_short_name != "arm64" {
-                sysroot.install(&format!("libquadmath0-{debian_arch_short_name}-cross"))?;
-            }
-            if debian_arch_short_name != "amd64" {
-                sysroot.install(&format!("libhwasan0-{debian_arch_short_name}-cross"))?;
-            }
-            sysroot.install(&format!("libtsan2-{debian_arch_short_name}-cross"))?;
-            sysroot.install(&format!("libasan8-{debian_arch_short_name}-cross"))?;
-            sysroot.install(&format!("libubsan1-{debian_arch_short_name}-cross"))?;
-            sysroot.install(&format!("libgcc-s1-{debian_arch_short_name}-cross"))?;
             sysroot.install(&format!("libgcc-12-dev-{debian_arch_short_name}-cross"))?;
 
             // TODO: Build frontend
