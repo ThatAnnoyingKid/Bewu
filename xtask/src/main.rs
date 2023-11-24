@@ -148,7 +148,7 @@ fn main() -> anyhow::Result<()> {
 
             let target_dir = metadata.workspace_root.join("target");
 
-            let mut sysroot =
+            let sysroot =
                 xtask_util::DebianSysrootBuilder::new(target_dir.join("debian-sysroot").into())
                     .build()?;
 
@@ -182,7 +182,7 @@ fn main() -> anyhow::Result<()> {
 
             // TODO: Build frontend
 
-            let (_guard, sysroot) = sysroot.get_sysroot_path()?;
+            let sysroot = sysroot.get_sysroot_path();
             let sysroot = sysroot.to_str().context("sysroot path is not unicode")?;
             let cflags = format!("--sysroot {sysroot}/usr/{gcc_triple}");
             let rustflags = format!("-Clinker=clang -Clink-args=--target={target} -Clink-args=--sysroot={sysroot} -Clink-args=--gcc-toolchain={sysroot}/usr -Clink-args=-fuse-ld=lld");
