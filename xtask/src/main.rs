@@ -81,6 +81,24 @@ fn build_frontend(metadata: &cargo_metadata::Metadata) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn fmt_all(metadata: &cargo_metadata::Metadata) -> anyhow::Result<()> {
+    let output = xtask_util::npm()
+        .current_dir(&metadata.workspace_root.join("frontend"))
+        .args(["run", "fmt"])
+        .status()
+        .context("failed to spawn command")?;
+    ensure!(output.success(), "failed to run cargo");
+
+    let output = Command::new("cargo")
+        .current_dir(&metadata.workspace_root)
+        .args(["fmt", "--all"])
+        .status()
+        .context("failed to spawn command")?;
+    ensure!(output.success(), "failed to run cargo");
+
+    Ok(())
+}
+
 fn main() -> anyhow::Result<()> {
     let options: Options = argh::from_env();
 
@@ -126,19 +144,7 @@ fn main() -> anyhow::Result<()> {
         Subcommand::Fmt(_options) => {
             let metadata = MetadataCommand::new().exec()?;
 
-            let output = xtask_util::npm()
-                .current_dir(&metadata.workspace_root.join("frontend"))
-                .args(["run", "fmt"])
-                .status()
-                .context("failed to spawn command")?;
-            ensure!(output.success(), "failed to run cargo");
-
-            let output = Command::new("cargo")
-                .current_dir(&metadata.workspace_root)
-                .args(["fmt", "--all"])
-                .status()
-                .context("failed to spawn command")?;
-            ensure!(output.success(), "failed to run cargo");
+            fmt_all(&metadata)?;
         }
         Subcommand::BuildDeb(_options) => {
             let metadata = MetadataCommand::new().exec()?;
@@ -164,6 +170,7 @@ fn main() -> anyhow::Result<()> {
             sysroot.install(&format!("libgcc-12-dev-{debian_arch_short_name}-cross"))?;
 
             // TODO: Build frontend
+            // TODO: Format
 
             let sysroot = sysroot.get_sysroot_path();
             let sysroot = sysroot.to_str().context("sysroot path is not unicode")?;
@@ -172,9 +179,12 @@ fn main() -> anyhow::Result<()> {
             let output = Command::new("cargo")
                 .current_dir(metadata.workspace_root.join("server"))
                 .args([
-                    "build", //"--release",
-                    "--bin", SERVER_BIN, // bin
-                    "--target", target, // target
+                    "build",
+                    "--release",
+                    "--bin",
+                    SERVER_BIN, // bin
+                    "--target",
+                    target, // target
                 ])
                 .env("CC", "clang")
                 .env("CFLAGS", cflags)

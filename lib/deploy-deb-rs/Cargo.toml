@@ -1,0 +1,15 @@
+[package]
+name = "deploy-deb"
+version = "0.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+anyhow = "1.0.75"
+argh = "0.1.12"
+camino = "1.1.6"
+indicatif = "0.17.7"
+libc = "0.2.150"
+libssh-rs = { version = "0.1.3", features = [ "vendored", "vendored-openssl" ] }
+rand = "0.8.5"
+url = "2.5.0"
