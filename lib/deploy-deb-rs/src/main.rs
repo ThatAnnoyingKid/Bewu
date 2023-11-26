@@ -100,9 +100,11 @@ fn generate_remote_deb_file_name(input: &Utf8Path) -> anyhow::Result<String> {
 }
 
 fn install_package(session: &Session, remote_deb_path: &Utf8Path) -> anyhow::Result<()> {
+    let sudo_password = rpassword::prompt_password("Enter your sudo password: ")?;
+
     let channel = session.new_channel()?;
     channel.open_session()?;
-    let command = format!("DEBIAN_FRONTEND=noninteractive sudo apt-get -y --fix-broken reinstall -o DPkg::options::=\"--force-confdef\" -o DPkg::options::=\"--force-confold\" {remote_deb_path} 2>&1");
+    let command = format!("DEBIAN_FRONTEND=noninteractive echo {sudo_password} | sudo -S -k -- apt-get -y --fix-broken reinstall -o DPkg::options::=\"--force-confdef\" -o DPkg::options::=\"--force-confold\" {remote_deb_path} 2>&1");
     channel.request_exec(&command)?;
     channel.send_eof()?;
 
