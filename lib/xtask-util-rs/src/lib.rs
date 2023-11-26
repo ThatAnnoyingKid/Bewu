@@ -16,3 +16,13 @@ const NPM_BIN: &str = "npm";
 pub fn npm() -> Command {
     Command::new(NPM_BIN)
 }
+
+/// Get the debian arch for a given triple
+pub fn get_debian_arch(triple: &str) -> Option<&'static str> {
+    match triple {
+        "x86_64-unknown-linux-gnu" => Some("amd64"),
+        "aarch64-unknown-linux-gnu" => Some("arm64"),
+        "armv7-unknown-linux-gnueabihf" => Some("armhf"),
+        _ => None,
+    }
+}

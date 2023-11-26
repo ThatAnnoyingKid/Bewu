@@ -46,7 +46,10 @@ struct FmtOptions {}
     name = "build-deb",
     description = "build a deb for this project"
 )]
-struct BuildDebOptions {}
+struct BuildDebOptions {
+    #[argh(option, description = "the target triple to build")]
+    target: String,
+}
 
 #[derive(Debug, argh::FromArgs)]
 #[argh(
@@ -54,7 +57,13 @@ struct BuildDebOptions {}
     name = "deploy-deb",
     description = "deploy a deb for this project"
 )]
-struct DeployDebOptions {}
+struct DeployDebOptions {
+    #[argh(option, description = "the target triple to deploy")]
+    target: String,
+
+    #[argh(option, description = "the server to deploy to")]
+    hostname: String,
+}
 
 fn build_frontend(metadata: &cargo_metadata::Metadata) -> anyhow::Result<()> {
     let frontend_dir = metadata.workspace_root.join("frontend");
@@ -108,14 +117,58 @@ fn fmt_all(metadata: &cargo_metadata::Metadata) -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Get the debian arch for a given triple
-fn get_debian_arch(triple: &str) -> Option<&'static str> {
-    match triple {
-        "x86_64-unknown-linux-gnu" => Some("amd64"),
-        "aarch64-unknown-linux-gnu" => Some("arm64"),
-        "armv7-unknown-linux-gnueabihf" => Some("armhf"),
-        _ => None,
-    }
+fn build_deb(metadata: &cargo_metadata::Metadata, target: &str) -> anyhow::Result<()> {
+    let target_dir = metadata.workspace_root.join("target");
+
+    let mut sysroot =
+        xtask_util::DebianSysrootBuilder::new(target_dir.join("debian-sysroot").into()).build()?;
+
+    let debian_arch = xtask_util::get_debian_arch(target)
+        .with_context(|| format!("failed to get debian arch for \"{target}\""))?;
+
+    let gcc_triple = match target {
+        "x86_64-unknown-linux-gnu" => "x86_64-linux-gnu",
+        "aarch64-unknown-linux-gnu" => "aarch64-linux-gnu",
+        _ => bail!("unsupported target \"{target}\""),
+    };
+
+    sysroot.install(&format!("libc6-{debian_arch}-cross"))?;
+    sysroot.install(&format!("libc6-dev-{debian_arch}-cross"))?;
+    sysroot.install(&format!("linux-libc-dev-{debian_arch}-cross"))?;
+    sysroot.install(&format!("libgcc-12-dev-{debian_arch}-cross"))?;
+
+    build_frontend(metadata)?;
+    fmt_all(metadata)?;
+
+    let sysroot = sysroot.get_sysroot_path();
+    let sysroot = sysroot.to_str().context("sysroot path is not unicode")?;
+    let cflags = format!("--sysroot {sysroot}/usr/{gcc_triple}");
+    let rustflags = format!("-Clinker=clang -Clink-args=--target={target} -Clink-args=--sysroot={sysroot} -Clink-args=--gcc-toolchain={sysroot}/usr -Clink-args=-fuse-ld=lld");
+    let output = Command::new("cargo")
+        .current_dir(metadata.workspace_root.join("server"))
+        .args([
+            "build",
+            "--release",
+            "--bin",
+            SERVER_BIN,
+            "--target",
+            target,
+        ])
+        .env("CC", "clang")
+        .env("CFLAGS", cflags)
+        .env("RUSTFLAGS", rustflags)
+        .status()
+        .context("failed to spawn command")?;
+    ensure!(output.success(), "failed to run cargo");
+
+    Command::new("cargo")
+        .current_dir(metadata.workspace_root.join("server"))
+        .args(["deb", "--target", target, "--no-build", "--no-strip"])
+        .status()
+        .context("failed to spawn command")?;
+    ensure!(output.success(), "failed to run cargo deb");
+
+    Ok(())
 }
 
 fn main() -> anyhow::Result<()> {
@@ -165,64 +218,12 @@ fn main() -> anyhow::Result<()> {
 
             fmt_all(&metadata)?;
         }
-        Subcommand::BuildDeb(_options) => {
+        Subcommand::BuildDeb(options) => {
             let metadata = MetadataCommand::new().exec()?;
 
-            // let target = "x86_64-unknown-linux-gnu";
-            let target = "aarch64-unknown-linux-gnu";
-
-            let target_dir = metadata.workspace_root.join("target");
-
-            let mut sysroot =
-                xtask_util::DebianSysrootBuilder::new(target_dir.join("debian-sysroot").into())
-                    .build()?;
-
-            let debian_arch = get_debian_arch(target)
-                .with_context(|| format!("failed to get debian arch for \"{target}\""))?;
-
-            let gcc_triple = match target {
-                "x86_64-unknown-linux-gnu" => "x86_64-linux-gnu",
-                "aarch64-unknown-linux-gnu" => "aarch64-linux-gnu",
-                _ => bail!("unsupported target \"{target}\""),
-            };
-
-            sysroot.install(&format!("libc6-{debian_arch}-cross"))?;
-            sysroot.install(&format!("libc6-dev-{debian_arch}-cross"))?;
-            sysroot.install(&format!("linux-libc-dev-{debian_arch}-cross"))?;
-            sysroot.install(&format!("libgcc-12-dev-{debian_arch}-cross"))?;
-
-            build_frontend(&metadata)?;
-            fmt_all(&metadata)?;
-
-            let sysroot = sysroot.get_sysroot_path();
-            let sysroot = sysroot.to_str().context("sysroot path is not unicode")?;
-            let cflags = format!("--sysroot {sysroot}/usr/{gcc_triple}");
-            let rustflags = format!("-Clinker=clang -Clink-args=--target={target} -Clink-args=--sysroot={sysroot} -Clink-args=--gcc-toolchain={sysroot}/usr -Clink-args=-fuse-ld=lld");
-            let output = Command::new("cargo")
-                .current_dir(metadata.workspace_root.join("server"))
-                .args([
-                    "build",
-                    "--release",
-                    "--bin",
-                    SERVER_BIN, // bin
-                    "--target",
-                    target, // target
-                ])
-                .env("CC", "clang")
-                .env("CFLAGS", cflags)
-                .env("RUSTFLAGS", rustflags)
-                .status()
-                .context("failed to spawn command")?;
-            ensure!(output.success(), "failed to run cargo");
-
-            Command::new("cargo")
-                .current_dir(metadata.workspace_root.join("server"))
-                .args(["deb", "--target", target, "--no-build", "--no-strip"])
-                .status()
-                .context("failed to spawn command")?;
-            ensure!(output.success(), "failed to run cargo deb");
+            build_deb(&metadata, options.target.as_str())?;
         }
-        Subcommand::DeployDeb(_options) => {
+        Subcommand::DeployDeb(options) => {
             let metadata = MetadataCommand::new().exec()?;
 
             let server_package_metadata = metadata
@@ -231,12 +232,12 @@ fn main() -> anyhow::Result<()> {
                 .find(|package| package.name == SERVER_BIN)
                 .with_context(|| format!("missing package \"{SERVER_BIN}\""))?;
 
-            // let target = "x86_64-unknown-linux-gnu";
-            let target = "aarch64-unknown-linux-gnu";
+            let hostname = options.hostname.as_str();
+            let target = options.target.as_str();
 
-            let hostname = "artemis.local";
+            build_deb(&metadata, options.target.as_str())?;
 
-            let debian_arch = get_debian_arch(target)
+            let debian_arch = xtask_util::get_debian_arch(target)
                 .with_context(|| format!("failed to get debian arch for \"{target}\""))?;
 
             let deb_version = &server_package_metadata.version;
