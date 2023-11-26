@@ -1,7 +1,3 @@
-mod debian_sysroot;
-
-pub use self::debian_sysroot::DebianSysroot;
-pub use self::debian_sysroot::DebianSysrootBuilder;
 use std::process::Command;
 
 /// On windows, npm is provided as this.

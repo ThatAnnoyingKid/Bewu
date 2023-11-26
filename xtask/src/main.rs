@@ -1,4 +1,3 @@
-use anyhow::bail;
 use anyhow::ensure;
 use anyhow::Context;
 use cargo_metadata::MetadataCommand;
@@ -118,50 +117,30 @@ fn fmt_all(metadata: &cargo_metadata::Metadata) -> anyhow::Result<()> {
 }
 
 fn build_deb(metadata: &cargo_metadata::Metadata, target: &str) -> anyhow::Result<()> {
-    let target_dir = metadata.workspace_root.join("target");
-
-    let mut sysroot =
-        xtask_util::DebianSysrootBuilder::new(target_dir.join("debian-sysroot").into()).build()?;
-
-    let debian_arch = xtask_util::get_debian_arch(target)
-        .with_context(|| format!("failed to get debian arch for \"{target}\""))?;
-
-    let gcc_triple = match target {
-        "x86_64-unknown-linux-gnu" => "x86_64-linux-gnu",
-        "aarch64-unknown-linux-gnu" => "aarch64-linux-gnu",
-        _ => bail!("unsupported target \"{target}\""),
-    };
-
-    sysroot.install(&format!("libc6-{debian_arch}-cross"))?;
-    sysroot.install(&format!("libc6-dev-{debian_arch}-cross"))?;
-    sysroot.install(&format!("linux-libc-dev-{debian_arch}-cross"))?;
-    sysroot.install(&format!("libgcc-12-dev-{debian_arch}-cross"))?;
-
     build_frontend(metadata)?;
     fmt_all(metadata)?;
 
-    let sysroot = sysroot.get_sysroot_path();
-    let sysroot = sysroot.to_str().context("sysroot path is not unicode")?;
-    let cflags = format!("--sysroot {sysroot}/usr/{gcc_triple}");
-    let rustflags = format!("-Clinker=clang -Clink-args=--target={target} -Clink-args=--sysroot={sysroot} -Clink-args=--gcc-toolchain={sysroot}/usr -Clink-args=-fuse-ld=lld");
-    let output = Command::new("cargo")
+    let output = Command::new("debian-sysroot-build")
         .current_dir(metadata.workspace_root.join("server"))
         .args([
-            "build",
-            "--release",
-            "--bin",
-            SERVER_BIN,
             "--target",
             target,
+            "--package",
+            SERVER_BIN,
+            "--install-package",
+            "libc6-%DEBIAN_ARCH%-cross",
+            "--install-package",
+            "libc6-dev-%DEBIAN_ARCH%-cross",
+            "--install-package",
+            "linux-libc-dev-%DEBIAN_ARCH%-cross",
+            "--install-package",
+            "libgcc-12-dev-%DEBIAN_ARCH%-cross",
         ])
-        .env("CC", "clang")
-        .env("CFLAGS", cflags)
-        .env("RUSTFLAGS", rustflags)
         .status()
         .context("failed to spawn command")?;
-    ensure!(output.success(), "failed to run cargo");
+    ensure!(output.success(), "failed to run debian-sysroot-build");
 
-    Command::new("cargo")
+    let output = Command::new("cargo")
         .current_dir(metadata.workspace_root.join("server"))
         .args(["deb", "--target", target, "--no-build", "--no-strip"])
         .status()

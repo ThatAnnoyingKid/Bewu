@@ -463,6 +463,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "debian-sysroot-build"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "ar",
+ "argh",
+ "cargo_metadata",
+ "flate2",
+ "fslock",
+ "rusqlite",
+ "tar",
+ "ureq",
+ "xz2",
+]
+
+[[package]]
 name = "deploy-deb"
 version = "0.0.0"
 dependencies = [
@@ -2840,16 +2856,6 @@ dependencies = [
 [[package]]
 name = "xtask-util"
 version = "0.0.0"
-dependencies = [
- "anyhow",
- "ar",
- "flate2",
- "fslock",
- "rusqlite",
- "tar",
- "ureq",
- "xz2",
-]
 
 [[package]]
 name = "xz2"
