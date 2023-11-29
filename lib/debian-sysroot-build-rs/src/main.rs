@@ -61,7 +61,7 @@ fn main() -> anyhow::Result<()> {
 
     let debian_arch = get_debian_arch(target)
         .with_context(|| format!("failed to get debian arch for \"{target}\""))?;
-    let gcc_triple = get_gcc_triple(target)
+    let _gcc_triple = get_gcc_triple(target)
         .with_context(|| format!("failed to get gcc triple for \"{target}\""))?;
 
     let sysroot_path = target_dir.join("debian-sysroot");

@@ -120,13 +120,12 @@ fn build_deb(metadata: &cargo_metadata::Metadata, target: &str) -> anyhow::Resul
     build_frontend(metadata)?;
     fmt_all(metadata)?;
 
-    let command = Command::new("debian-sysroot-build");
+    let mut command = Command::new("debian-sysroot-build");
     command
         .current_dir(metadata.workspace_root.join("server"))
         .args(["--target", target])
+        .args([ "--package", SERVER_BIN])
         .args([
-            "--package",
-            SERVER_BIN,
             "--install-package",
             "libc6",
             "--install-package",
