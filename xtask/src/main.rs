@@ -128,13 +128,13 @@ fn build_deb(metadata: &cargo_metadata::Metadata, target: &str) -> anyhow::Resul
             "--package",
             SERVER_BIN,
             "--install-package",
-            "libc6-%DEBIAN_ARCH%-cross",
+            "libc6",
             "--install-package",
-            "libc6-dev-%DEBIAN_ARCH%-cross",
+            "libc6-dev",
             "--install-package",
-            "linux-libc-dev-%DEBIAN_ARCH%-cross",
+            "linux-libc-dev",
             "--install-package",
-            "libgcc-12-dev-%DEBIAN_ARCH%-cross",
+            "libgcc-12-dev",
         ])
         .status()
         .context("failed to spawn command")?;

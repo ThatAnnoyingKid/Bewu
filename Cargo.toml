@@ -6,6 +6,9 @@ members = [
     "lib/*",
 ]
 
+[patch.crates-io]
+openssl-src = { git = "https://github.com/nathaniel-daniel/openssl-src-rs", branch = "fix-msvc-host-cross" }
+
 [profile.release]
 lto = "fat"
 opt-level = 3

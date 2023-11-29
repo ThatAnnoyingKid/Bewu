@@ -44,6 +44,9 @@ struct Options {
         long = "install-package"
     )]
     install_package: Vec<String>,
+
+    #[argh(option, description = "build features")]
+    features: Option<String>,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -53,9 +56,6 @@ fn main() -> anyhow::Result<()> {
 
     let target_dir = metadata.workspace_root.join("target");
 
-    let sysroot_path = target_dir.join("debian-sysroot");
-    let mut sysroot = DebianSysrootBuilder::new(sysroot_path.into()).build()?;
-
     let target = options.target.as_str();
     let package = options.package.as_str();
 
@@ -63,6 +63,11 @@ fn main() -> anyhow::Result<()> {
         .with_context(|| format!("failed to get debian arch for \"{target}\""))?;
     let gcc_triple = get_gcc_triple(target)
         .with_context(|| format!("failed to get gcc triple for \"{target}\""))?;
+
+    let sysroot_path = target_dir.join("debian-sysroot");
+    let mut sysroot = DebianSysrootBuilder::new(sysroot_path.into())
+        .arch(debian_arch)
+        .build()?;
 
     for package in options.install_package.iter() {
         let package = package.replace("%DEBIAN_ARCH%", debian_arch);
@@ -73,17 +78,26 @@ fn main() -> anyhow::Result<()> {
 
     let sysroot = sysroot.get_sysroot_path();
     let sysroot = sysroot.to_str().context("sysroot path is not unicode")?;
-    let cflags = format!("--sysroot {sysroot}/usr/{gcc_triple}");
-    let rustflags = format!("-Clinker=clang -Clink-args=--target={target} -Clink-args=--sysroot={sysroot} -Clink-args=--gcc-toolchain={sysroot}/usr -Clink-args=-fuse-ld=lld");
+    // openssl chokes on backslashes in paths
+    let sysroot = sysroot.replace('\\', "/");
 
-    let output = Command::new("cargo")
-        .current_dir(metadata.workspace_root.join("server"))
-        .args(["build", "--release", "-p", package, "--target", target])
-        .env("CC", "clang")
-        .env("CFLAGS", cflags)
-        .env("RUSTFLAGS", rustflags)
-        .status()
-        .context("failed to spawn command")?;
+    let cc = "clang";
+    let cflags = format!("--sysroot={sysroot}");
+    let rustflags =
+        format!("-Clinker=clang -Clink-args=--target={target} -Clink-args=--sysroot={sysroot} -Clink-args=-fuse-ld=lld");
+
+    let mut command = Command::new("cargo");
+    command.env("CC", cc);
+    command.env("CFLAGS", cflags);
+    command.env("RUSTFLAGS", rustflags);
+    command.arg("build");
+    command.arg("--release");
+    command.args(["-p", package]);
+    command.args(["--target", target]);
+    if let Some(features) = options.features {
+        command.args(["--features", features.as_str()]);
+    }
+    let output = command.status().context("failed to spawn cargo build")?;
     ensure!(output.success(), "failed to run cargo build");
 
     Ok(())

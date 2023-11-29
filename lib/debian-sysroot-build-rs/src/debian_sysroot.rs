@@ -8,6 +8,7 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::Read;
 use std::io::Write;
+use std::path::Path;
 use std::path::PathBuf;
 use xz2::read::XzDecoder;
 
@@ -425,6 +426,11 @@ impl DebianSysroot {
             })?;
 
         Ok(())
+    }
+
+    /// Get the base path.
+    pub fn get_base_path(&self) -> &Path {
+        &self.path
     }
 
     /// Get the path to the sysroot.

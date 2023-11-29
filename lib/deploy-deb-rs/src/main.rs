@@ -3,12 +3,10 @@ use anyhow::ensure;
 use anyhow::Context;
 use camino::Utf8Path;
 use camino::Utf8PathBuf;
-use libc::O_CREAT;
-use libc::O_EXCL;
-use libc::O_WRONLY;
 use libssh_rs::AuthMethods;
 use libssh_rs::AuthStatus;
 use libssh_rs::KnownHosts;
+use libssh_rs::OpenFlags;
 use libssh_rs::PublicKeyHashType;
 use libssh_rs::Session;
 use libssh_rs::SshOption;
@@ -152,7 +150,7 @@ fn main() -> anyhow::Result<()> {
     let mut remote_deb_file = sftp
         .open(
             remote_deb_path.as_str(),
-            O_WRONLY | O_CREAT | O_EXCL,
+            OpenFlags::WRITE_ONLY | OpenFlags::CREATE_NEW,
             0o600, // Prevent users from tampering with the file.
         )
         .with_context(|| format!("failed to open \"{remote_deb_path}\" on the server"))?;
