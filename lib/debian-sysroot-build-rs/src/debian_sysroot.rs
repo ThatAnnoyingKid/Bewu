@@ -16,15 +16,15 @@ const SETUP_SQL: &str = "
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS packages (
-	name TEXT NOT NULL PRIMARY KEY,
-	file_name TEXT NOT NULL,
-	depends TEXT
+    name TEXT NOT NULL PRIMARY KEY,
+    file_name TEXT NOT NULL,
+    depends TEXT
 ) STRICT;
 
 CREATE TABLE IF NOT EXISTS installed_packages (
-	name TEXT NOT NULL PRIMARY KEY,
-	file_name TEXT NOT NULL,
-	depends TEXT
+    name TEXT NOT NULL PRIMARY KEY,
+    file_name TEXT NOT NULL,
+    depends TEXT
 ) STRICT;
 ";
 
@@ -171,16 +171,16 @@ impl DebianSysroot {
         {
             let mut statement = transaction.prepare_cached(
                 "
-				INSERT OR REPLACE INTO packages (
-					name,
-					file_name,
-					depends
-				) VALUES (
-					:name,
-					:file_name,
-					:depends
-				);
-				",
+                INSERT OR REPLACE INTO packages (
+                    name,
+                    file_name,
+                    depends
+                ) VALUES (
+                    :name,
+                    :file_name,
+                    :depends
+                );
+                ",
             )?;
             for package in parse_package_list(&contents) {
                 let package = package?;
@@ -210,15 +210,15 @@ impl DebianSysroot {
     fn get_package_info(&mut self, name: &str) -> anyhow::Result<Option<PackageInfo>> {
         let mut statement = self.database.prepare_cached(
             "
-			SELECT
-				name,
-				file_name, 
-				depends
-			FROM
-				packages
-			where
-				name = :name;
-		",
+            SELECT
+                name,
+                file_name, 
+                depends
+            FROM
+                packages
+            where
+                name = :name;
+        ",
         )?;
         statement
             .query_row(
@@ -250,15 +250,15 @@ impl DebianSysroot {
     fn get_installed_package_info(&mut self, name: &str) -> anyhow::Result<Option<PackageInfo>> {
         let mut statement = self.database.prepare_cached(
             "
-			SELECT
-				name,
-				file_name, 
-				depends
-			FROM
-				installed_packages
-			where
-				name = :name;
-		",
+            SELECT
+                name,
+                file_name, 
+                depends
+            FROM
+                installed_packages
+            where
+                name = :name;
+        ",
         )?;
         statement
             .query_row(
@@ -407,17 +407,17 @@ impl DebianSysroot {
         self.database
             .prepare_cached(
                 "
-					INSERT OR REPLACE INTO installed_packages (
-						name,
-						file_name,
-						depends
-					) VALUES (
-						:name, 
-						:file_name,
-						:depends
-					);
-				
-				",
+                    INSERT OR REPLACE INTO installed_packages (
+                        name,
+                        file_name,
+                        depends
+                    ) VALUES (
+                        :name, 
+                        :file_name,
+                        :depends
+                    );
+                
+                ",
             )?
             .execute(named_params! {
                 ":name": package.name,

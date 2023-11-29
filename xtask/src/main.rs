@@ -120,11 +120,11 @@ fn build_deb(metadata: &cargo_metadata::Metadata, target: &str) -> anyhow::Resul
     build_frontend(metadata)?;
     fmt_all(metadata)?;
 
-    let output = Command::new("debian-sysroot-build")
+    let command = Command::new("debian-sysroot-build");
+    command
         .current_dir(metadata.workspace_root.join("server"))
+        .args(["--target", target])
         .args([
-            "--target",
-            target,
             "--package",
             SERVER_BIN,
             "--install-package",
@@ -135,9 +135,8 @@ fn build_deb(metadata: &cargo_metadata::Metadata, target: &str) -> anyhow::Resul
             "linux-libc-dev",
             "--install-package",
             "libgcc-12-dev",
-        ])
-        .status()
-        .context("failed to spawn command")?;
+        ]);
+    let output = command.status().context("failed to spawn command")?;
     ensure!(output.success(), "failed to run debian-sysroot-build");
 
     let output = Command::new("cargo")
