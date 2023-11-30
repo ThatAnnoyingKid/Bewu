@@ -124,7 +124,7 @@ fn build_deb(metadata: &cargo_metadata::Metadata, target: &str) -> anyhow::Resul
     command
         .current_dir(metadata.workspace_root.join("server"))
         .args(["--target", target])
-        .args([ "--package", SERVER_BIN])
+        .args(["--package", SERVER_BIN])
         .args([
             "--install-package",
             "libc6",
