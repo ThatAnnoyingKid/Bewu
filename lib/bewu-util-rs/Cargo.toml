@@ -7,12 +7,12 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 anyhow = { version = "1.0.75", optional = true }
 async-stream = { version = "0.3.5", optional = true }
-fd-lock = { version = "4.0.0", optional = true }
+fd-lock = { version = "4.0.1", optional = true }
 hls-parser = { path = "../hls-parser-rs", optional = true }
-lru = { version = "0.12.0", optional = true }
+lru = { version = "0.12.1", optional = true }
 nd-util = { git = "https://github.com/nathaniel-daniel/nd-util-rs", optional = true }
 reqwest = { version = "0.11.22", default-features = false, optional = true }
-tokio = { version = "1.33.0", optional = true }
+tokio = { version = "1.34.0", optional = true }
 tokio-ffmpeg-cli = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs", optional = true }
 tokio-stream = { version = "0.1.14", optional = true }
 tokio-util = { version = "0.7.10", optional = true }

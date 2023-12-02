@@ -7,7 +7,10 @@ members = [
 ]
 
 [patch.crates-io]
-openssl-src = { git = "https://github.com/nathaniel-daniel/openssl-src-rs", branch = "fix-msvc-host-cross" }
+openssl-src = { git = "https://github.com/alexcrichton/openssl-src-rs" }
+
+[patch.'https://github.com/ThatAnnoyingKid/pikadick-rs']
+async-rusqlite = { git = "https://github.com/adumbidiot/pikadick-rs", branch = "update" }
 
 [profile.release]
 lto = "fat"
