@@ -55,6 +55,10 @@ skip = [
     { name = "phf_generator", version = "0.10.0" },
     { name = "phf", version = "0.10.1" },
     { name = "socket2", version = "0.4.9" },
+    { name = "windows_x86_64_msvc", version = "0.48.5" },
+    { name = "windows_x86_64_gnu", version = "0.48.5" },
+    { name = "windows-targets", version = "0.48.5" },
+    { name = "windows-sys", version = "0.48.0" },
 ]
 deny = []
 
@@ -64,6 +68,7 @@ unknown-git = "deny"
 allow-registry = [ "https://github.com/rust-lang/crates.io-index" ]
 allow-git = [
     "https://github.com/wez/libssh-rs",
+    "https://github.com/alexcrichton/openssl-src-rs",
 ]
 
 [sources.allow-org] 
