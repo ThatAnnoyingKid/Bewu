@@ -6,11 +6,8 @@ members = [
     "lib/*",
 ]
 
-[patch.crates-io]
-openssl-src = { git = "https://github.com/alexcrichton/openssl-src-rs" }
-
 [patch.'https://github.com/ThatAnnoyingKid/pikadick-rs']
-async-rusqlite = { git = "https://github.com/adumbidiot/pikadick-rs", branch = "update" }
+async-rusqlite = { git = "https://github.com/adumbidiot/pikadick-rs" }
 
 [profile.release]
 lto = "fat"

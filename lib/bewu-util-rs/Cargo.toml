@@ -17,48 +17,55 @@ tokio-ffmpeg-cli = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs", opt
 tokio-stream = { version = "0.1.14", optional = true }
 tokio-util = { version = "0.7.10", optional = true }
 
+[dev-dependencies]
+tokio = { version = "1.34.0", features = [ "macros", "time", "rt" ] }
+
 [features]
 abort-join-handle = [
-    "tokio",
+    "dep:tokio",
     "tokio/rt",
 ]
 async-lock-file = [
-    "anyhow",
-    "fd-lock",
-    "tokio",
+    "dep:anyhow",
+    "dep:fd-lock",
+    "dep:tokio",
     "tokio/rt",
     "tokio/sync",
 ]
 state-update-channel = [
-    "tokio",
+    "dep:tokio",
     "tokio/sync",
-    "tokio-stream",
-    "tokio-util",
+    "dep:tokio-stream",
+    "dep:tokio-util",
 ]
 parse-ffmpeg-time = [
-    "anyhow",
+    "dep:anyhow",
 ]
 async-timed-lru-cache = [
-    "lru",
-    "tokio",
+    "dep:lru",
+    "dep:tokio",
     "tokio/sync",
 ]
 async-timed-cache-cell = [
-    "tokio",
+    "dep:tokio",
     "tokio/sync",
 ]
 download-hls = [
-    "anyhow",
+    "dep:anyhow",
     "async-lock-file",
-    "async-stream",
-    "fd-lock",
-    "hls-parser",
-    "nd-util",
+    "dep:async-stream",
+    "dep:fd-lock",
+    "dep:hls-parser",
+    "dep:nd-util",
     "nd-util/download-to-path",
     "parse-ffmpeg-time",
-    "reqwest",
-    "tokio",
+    "dep:reqwest",
+    "dep:tokio",
     "tokio/fs",
-    "tokio-ffmpeg-cli",
-    "tokio-stream",
+    "dep:tokio-ffmpeg-cli",
+    "dep:tokio-stream",
+]
+async-mutex-map = [
+    "dep:tokio",
+    "tokio/sync",
 ]

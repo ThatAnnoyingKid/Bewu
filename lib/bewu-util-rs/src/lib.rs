@@ -32,3 +32,8 @@ pub use self::async_timed_cache_cell::*;
 mod download_hls;
 #[cfg(feature = "download-hls")]
 pub use self::download_hls::*;
+
+#[cfg(feature = "async-mutex-map")]
+mod async_mutex_map;
+#[cfg(feature = "async-mutex-map")]
+pub use self::async_mutex_map::*;
