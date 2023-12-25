@@ -1,5 +1,5 @@
 const BASE_URL_KEY: &str = "VIDSTREAMING_RS_BASE_URL";
-const DEFAULT_BASE_URL_VALUE: &str = "https://anihdplay.com/";
+const DEFAULT_BASE_URL_VALUE: &str = "https://embtaku.pro/";
 
 fn main() {
     let base_url_value = std::env::var(BASE_URL_KEY);

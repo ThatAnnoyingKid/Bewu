@@ -119,14 +119,15 @@ mod test {
 
     #[tokio::test]
     async fn get_episode() {
-        let urls = [
-            "https://anihdplay.com/videos/bleach-episode-366",
-            "https://anihdplay.com/videos/black-clover-tv-dub-episode-170",
+        let paths = [
+            "/videos/bleach-episode-366",
+            "/videos/black-clover-tv-dub-episode-170",
         ];
         let client = Client::new();
-        for url in urls {
+        for path in paths {
+            let url = format!("{}{}", env!("VIDSTREAMING_RS_BASE_URL"), path);
             let episode = client
-                .get_episode(url)
+                .get_episode(&url)
                 .await
                 .expect("failed to get episode");
 
@@ -138,7 +139,10 @@ mod test {
     #[tokio::test]
     async fn get_video_player() {
         let client = Client::new();
-        let url = "https://anihdplay.com/videos/bleach-episode-366";
+        let url = concat!(
+            env!("VIDSTREAMING_RS_BASE_URL"),
+            "/videos/bleach-episode-366"
+        );
         let episode = client
             .get_episode(url)
             .await
