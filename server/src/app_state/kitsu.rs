@@ -2,7 +2,7 @@ use super::Database;
 use super::KitsuAnime;
 use anyhow::Context;
 use bewu_util::AsyncTimedLruCache;
-use pikadick_util::ArcAnyhowError;
+use nd_util::ArcAnyhowError;
 use std::num::NonZeroU64;
 use std::sync::Arc;
 use std::time::Duration;

@@ -2,7 +2,7 @@ use crate::util::AbortJoinHandle;
 use anyhow::anyhow;
 use anyhow::ensure;
 use anyhow::Context;
-use pikadick_util::ArcAnyhowError;
+use nd_util::ArcAnyhowError;
 use std::path::Path;
 use std::sync::Arc;
 use tokio_stream::Stream;
