@@ -6,4 +6,4 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 thiserror = "1.0.56"
-tokio = { version = "1.35.1", features = [ "rt", "sync", "macros" ] }
+tokio = { version = "1.37.0", features = [ "rt", "sync", "macros" ] }
