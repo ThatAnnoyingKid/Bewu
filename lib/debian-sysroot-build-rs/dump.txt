@@ -1,0 +1,2 @@
+cargo run --bin debian-sysroot-build -- --target aarch64-unknown-linux-gnu --package bewu --install-package libc6 --install-package libc6-dev --install-package linux-libc-dev --install-package libgcc-12-dev
+cargo run --bin debian-sysroot-build -- --target aarch64-unknown-linux-gnu --package deploy-deb --install-package libc6 --install-package libc6-dev --install-package linux-libc-dev --install-package libgcc-12-dev

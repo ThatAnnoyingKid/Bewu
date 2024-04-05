@@ -82,7 +82,7 @@ fn main() -> anyhow::Result<()> {
     let sysroot = sysroot.replace('\\', "/");
 
     let cc = "clang";
-    let cflags = format!("--sysroot={sysroot}");
+    let cflags = format!("--sysroot={sysroot} -fuse-ld=lld");
     let rustflags =
         format!("-Clinker=clang -Clink-args=--target={target} -Clink-args=--sysroot={sysroot} -Clink-args=-fuse-ld=lld");
 
