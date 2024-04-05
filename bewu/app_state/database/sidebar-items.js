@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["GET_KITSU_ANIME_SQL","SETUP_SQL","UPSERT_KITSU_ANIME_SQL","UPSERT_KITSU_EPISODE_SQL"],"mod":["model"],"struct":["Database"],"trait":["AsSlice"]};

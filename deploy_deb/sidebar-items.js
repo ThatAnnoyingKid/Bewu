@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["authenticate","generate_remote_deb_file_name","install_package","main","verify_known_hosts"],"struct":["Options"]};
