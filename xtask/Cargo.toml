@@ -5,9 +5,9 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-anyhow = "1.0.80"
+anyhow = "1.0.81"
 argh = "0.1.12"
 cargo_metadata = "0.18.1"
-ctrlc = "3.4.2"
-walkdir = "2.4.0"
+ctrlc = "3.4.4"
+walkdir = "2.5.0"
 xtask-util = { path = "../lib/xtask-util-rs" }

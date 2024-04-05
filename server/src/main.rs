@@ -26,15 +26,15 @@ fn main() -> anyhow::Result<()> {
 async fn async_main(config: Config) -> anyhow::Result<()> {
     let app_state = Arc::new(AppState::new(&config.data_directory).await?);
     let app = self::routes::routes(&config, app_state.clone())?;
-    let server = axum::Server::try_bind(&config.bind_address)
+    let server_listener = tokio::net::TcpListener::bind(&config.bind_address)
+        .await
         .with_context(|| format!("failed to bind to address \"{}\"", config.bind_address))?;
 
-    info!("listening on {}", config.bind_address);
+    info!("listening on \"{}\"", config.bind_address);
 
     let (shutdown_tx, mut shutdown_rx) = tokio::sync::oneshot::channel();
     let mut server_task_handle = tokio::spawn(async move {
-        server
-            .serve(app.into_make_service())
+        axum::serve(server_listener, app)
             .with_graceful_shutdown(async {
                 let result = tokio::signal::ctrl_c()
                     .await
@@ -44,8 +44,8 @@ async fn async_main(config: Config) -> anyhow::Result<()> {
                     Ok(()) => {
                         info!("shutting down");
                     }
-                    Err(e) => {
-                        error!("{e:?}");
+                    Err(error) => {
+                        error!("{error:?}");
                     }
                 }
             })
@@ -67,7 +67,7 @@ async fn async_main(config: Config) -> anyhow::Result<()> {
 
             tokio::select! {
                 _ = &mut timeout_future => {
-                    info!("server task did not exit within {:?}, aborting server task", timeout_duration);
+                    info!("server task did not exit within {timeout_duration:?}, aborting server task");
 
                     server_task_handle.abort();
                     server_task_handle.await
@@ -86,8 +86,8 @@ async fn async_main(config: Config) -> anyhow::Result<()> {
         .await
         .context("failed to shutdown app state");
 
-    if let Err(e) = shutdown_result.as_ref() {
-        error!("{e}");
+    if let Err(error) = shutdown_result.as_ref() {
+        error!("{error}");
     }
 
     result.or(shutdown_result)
