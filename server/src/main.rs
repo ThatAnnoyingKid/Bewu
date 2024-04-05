@@ -26,7 +26,9 @@ fn main() -> anyhow::Result<()> {
 async fn async_main(config: Config) -> anyhow::Result<()> {
     let app_state = Arc::new(AppState::new(&config.data_directory).await?);
     let app = self::routes::routes(&config, app_state.clone())?;
-    let server_listener = tokio::net::TcpListener::bind(&config.bind_address).await.with_context(|| format!("failed to bind to address \"{}\"", config.bind_address))?;
+    let server_listener = tokio::net::TcpListener::bind(&config.bind_address)
+        .await
+        .with_context(|| format!("failed to bind to address \"{}\"", config.bind_address))?;
 
     info!("listening on \"{}\"", config.bind_address);
 
