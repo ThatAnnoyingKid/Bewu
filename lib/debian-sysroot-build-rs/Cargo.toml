@@ -13,5 +13,5 @@ flate2 = "1.0.28"
 fslock = "0.2.1"
 rusqlite = { version = "0.30.0", features = [ "bundled" ] }
 tar = "0.4.40"
-ureq = "2.9.6"
+ureq = "2.9.7"
 xz2 = "0.1.7"
