@@ -11,7 +11,7 @@ fd-lock = { version = "4.0.2", optional = true }
 hls-parser = { path = "../hls-parser-rs", optional = true }
 lru = { version = "0.12.3", optional = true }
 nd-util = { git = "https://github.com/nathaniel-daniel/nd-util-rs", optional = true }
-reqwest = { version = "0.12.2", default-features = false, optional = true }
+reqwest = { version = "0.12.5", default-features = false, optional = true }
 tokio = { version = "1.37.0", optional = true }
 tokio-ffmpeg-cli = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs", optional = true }
 tokio-stream = { version = "0.1.15", optional = true }
