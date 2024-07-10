@@ -3,8 +3,8 @@ mod model;
 pub use self::model::KitsuAnime;
 pub use self::model::KitsuAnimeEpisode;
 use anyhow::Context;
-use async_rusqlite::rusqlite::named_params;
-use async_rusqlite::rusqlite::OptionalExtension;
+use nd_async_rusqlite::rusqlite::named_params;
+use nd_async_rusqlite::rusqlite::OptionalExtension;
 use std::num::NonZeroU64;
 use std::path::Path;
 use std::sync::Arc;
@@ -65,7 +65,7 @@ WHERE
 
 #[derive(Debug, Clone)]
 pub struct Database {
-    pub(crate) database: async_rusqlite::Database,
+    pub(crate) database: nd_async_rusqlite::AsyncConnection,
 }
 
 impl Database {
@@ -75,13 +75,17 @@ impl Database {
         P: AsRef<Path>,
     {
         let path = path.as_ref();
-        let database = async_rusqlite::Database::open(path, true, |database| {
-            database
-                .execute_batch(SETUP_SQL)
-                .context("failed to setup database")?;
-            Ok(())
-        })
-        .await?;
+        let database = nd_async_rusqlite::AsyncConnection::builder()
+            .open(path)
+            .await?;
+        database
+            .access(|database| {
+                database
+                    .execute_batch(SETUP_SQL)
+                    .context("failed to setup database")
+            })
+            .await??;
+
         Ok(Self { database })
     }
 
@@ -91,7 +95,7 @@ impl Database {
         A: AsSlice<KitsuAnime> + Send + 'static,
     {
         self.database
-            .access_db(move |database| {
+            .access(move |database| {
                 let transaction = database.transaction()?;
                 {
                     let mut statement = transaction.prepare_cached(UPSERT_KITSU_ANIME_SQL)?;
@@ -122,7 +126,7 @@ impl Database {
         E: AsSlice<KitsuAnimeEpisode> + Send + 'static,
     {
         self.database
-            .access_db(move |database| {
+            .access(move |database| {
                 let transaction = database.transaction()?;
                 {
                     let mut statement = transaction.prepare_cached(UPSERT_KITSU_EPISODE_SQL)?;
@@ -155,7 +159,7 @@ impl Database {
     ) -> anyhow::Result<Option<Arc<KitsuAnime>>> {
         let anime = self
             .database
-            .access_db(move |database| {
+            .access(move |database| {
                 let mut statement = database.prepare_cached(GET_KITSU_ANIME_SQL)?;
 
                 let anime = statement
@@ -223,7 +227,7 @@ impl Database {
     /// Optimize the database.
     pub async fn optimize(&self) -> anyhow::Result<()> {
         self.database
-            .access_db(|database| {
+            .access(|database| {
                 database.execute("PRAGMA OPTIMIZE;", [])?;
                 database.execute("VACUUM;", [])
             })
@@ -238,25 +242,24 @@ impl Database {
     ///
     /// Should only be called once.
     pub async fn shutdown(&self) -> anyhow::Result<()> {
-        let optmize_result = self.optimize().await.map_err(|error| {
-            error!("{error}");
-            error
-        });
+        let results = [
+            self.optimize().await.context("failed to optimize database"),
+            self.database
+                .close()
+                .await
+                .context("failed to send close the database"),
+        ];
 
-        // If we failed to close,
-        // the database has already exited,
-        // so it is safe to join.
-        let close_result = self
-            .database
-            .close()
-            .await
-            .context("failed to send close command");
-        let join_result = self
-            .database
-            .join()
-            .await
-            .context("failed to join database thread");
+        for result in results.iter() {
+            if let Err(error) = result.as_ref() {
+                error!("{error}");
+            }
+        }
 
-        join_result.or(close_result).or(optmize_result)
+        for result in results {
+            result?;
+        }
+
+        Ok(())
     }
 }

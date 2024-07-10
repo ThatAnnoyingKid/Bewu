@@ -100,7 +100,7 @@ fn build_frontend(metadata: &cargo_metadata::Metadata) -> anyhow::Result<()> {
 
 fn fmt_all(metadata: &cargo_metadata::Metadata) -> anyhow::Result<()> {
     let output = xtask_util::npm()
-        .current_dir(&metadata.workspace_root.join("frontend"))
+        .current_dir(metadata.workspace_root.join("frontend"))
         .args(["run", "fmt"])
         .status()
         .context("failed to spawn command")?;
