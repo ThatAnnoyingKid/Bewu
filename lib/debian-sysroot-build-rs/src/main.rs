@@ -61,7 +61,7 @@ fn main() -> anyhow::Result<()> {
 
     let debian_arch = get_debian_arch(target)
         .with_context(|| format!("failed to get debian arch for \"{target}\""))?;
-    let _gcc_triple = get_gcc_triple(target)
+    let gcc_triple = get_gcc_triple(target)
         .with_context(|| format!("failed to get gcc triple for \"{target}\""))?;
 
     let sysroot_path = target_dir.join("debian-sysroot");
@@ -85,11 +85,19 @@ fn main() -> anyhow::Result<()> {
     let cflags = format!("--sysroot={sysroot} -fuse-ld=lld");
     let rustflags =
         format!("-Clinker=clang -Clink-args=--target={target} -Clink-args=--sysroot={sysroot} -Clink-args=-fuse-ld=lld");
+    let pkg_config_libdir = format!("{sysroot}/usr/lib/{gcc_triple}/pkgconfig");
 
     let mut command = Command::new("cargo");
     command.env("CC", cc);
     command.env("CFLAGS", cflags);
     command.env("RUSTFLAGS", rustflags);
+
+    // This will prevent the default paths pkg-config paths from being used.
+    // Test this with libssl-dev.
+    command.env("PKG_CONFIG_DIR", "");
+    command.env("PKG_CONFIG_SYSROOT_DIR", sysroot);
+    command.env("PKG_CONFIG_LIBDIR", pkg_config_libdir);
+
     command.arg("build");
     command.arg("--release");
     command.args(["-p", package]);
