@@ -75,7 +75,7 @@ fn build_frontend(metadata: &cargo_metadata::Metadata) -> anyhow::Result<()> {
 
     let dist_dir = frontend_dir.join("dist");
     let public_dir = metadata.workspace_root.join("server/public");
-    
+
     match std::fs::remove_dir_all(&public_dir) {
         Ok(()) => {}
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
@@ -84,7 +84,7 @@ fn build_frontend(metadata: &cargo_metadata::Metadata) -> anyhow::Result<()> {
         }
     }
     std::fs::create_dir_all(&public_dir).context("failed to create public dir")?;
-    
+
     for entry in WalkDir::new(&dist_dir) {
         let entry = entry?;
         let entry_path = entry.path();
