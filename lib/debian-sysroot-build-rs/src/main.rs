@@ -36,7 +36,7 @@ struct Options {
         short = 'p',
         long = "package"
     )]
-    package: String,
+    package: Option<String>,
 
     #[argh(
         option,
@@ -57,7 +57,7 @@ fn main() -> anyhow::Result<()> {
     let target_dir = metadata.workspace_root.join("target");
 
     let target = options.target.as_str();
-    let package = options.package.as_str();
+    let package = options.package.as_deref();
 
     let debian_arch = get_debian_arch(target)
         .with_context(|| format!("failed to get debian arch for \"{target}\""))?;
@@ -100,7 +100,9 @@ fn main() -> anyhow::Result<()> {
 
     command.arg("build");
     command.arg("--release");
-    command.args(["-p", package]);
+    if let Some(package) = package {
+        command.args(["-p", package]);
+    }
     command.args(["--target", target]);
     if let Some(features) = options.features {
         command.args(["--features", features.as_str()]);
