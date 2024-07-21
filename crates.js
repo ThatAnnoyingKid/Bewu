@@ -1,0 +1,1 @@
+window.ALL_CRATES = ["bewu","bewu_util","debian_sysroot_build","deploy_deb","hls_parser","kitsu","remote_debian_install","task_system","vidstreaming","xtask","xtask_util"];
