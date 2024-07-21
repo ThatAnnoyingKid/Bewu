@@ -174,7 +174,7 @@ fn main() -> anyhow::Result<()> {
     let cargo_home = {
         let channel = session.new_channel()?;
         channel.open_session()?;
-        channel.request_exec(&GET_CARGO_HOME_SH)?;
+        channel.request_exec(GET_CARGO_HOME_SH)?;
         channel.send_eof()?;
 
         let mut buffer = Vec::new();
