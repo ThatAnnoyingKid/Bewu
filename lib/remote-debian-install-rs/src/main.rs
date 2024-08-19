@@ -136,6 +136,11 @@ fn main() -> anyhow::Result<()> {
         command.args([&options.git, "."]);
         let status = command.status()?;
         ensure!(status.success());
+    } else {
+        let mut command = Command::new("git");
+        command.current_dir(temp_dir.path()).arg("pull");
+        let status = command.status()?;
+        ensure!(status.success());
     }
 
     let cargo_metadata = MetadataCommand::new().current_dir(temp_dir.path()).exec()?;
