@@ -7,9 +7,9 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 anyhow = "1.0.86"
 argh = "0.1.12"
-camino = "1.1.7"
+camino = "1.1.9"
 indicatif = "0.17.8"
-libc = "0.2.155"
+libc = "0.2.158"
 # libssh-rs = { version = "0.1.3", features = [ "vendored", "vendored-openssl" ] }
 libssh-rs = { git = "https://github.com/wez/libssh-rs", features = [ "vendored", "vendored-openssl" ] }
 rand = "0.8.5"

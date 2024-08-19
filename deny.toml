@@ -50,6 +50,7 @@ skip = [
     { name = "windows-sys", version = "0.48.0" },
     { name = "sync_wrapper", version = "0.1.2" },
     { name = "phf_codegen", version = "0.10.0" },
+    { name = "windows-sys", version = "0.52.0" },
 ]
 deny = []
 
