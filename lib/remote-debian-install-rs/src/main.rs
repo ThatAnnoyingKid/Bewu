@@ -35,6 +35,13 @@ struct Options {
 
     #[argh(
         option,
+        long = "branch",
+        description = "the git branch to install from"
+    )]
+    branch: Option<String>,
+
+    #[argh(
+        option,
         long = "package",
         short = 'p',
         description = "the package to install"
@@ -107,6 +114,8 @@ fn main() -> anyhow::Result<()> {
         let mut hasher = SeaHasher::new();
         options.git.hash(&mut hasher);
         hasher.write_u8(0x12);
+        options.branch.hash(&mut hasher);
+        hasher.write_u8(0x12);
         hasher.finish()
     };
     let mut temp_dir =
@@ -119,10 +128,18 @@ fn main() -> anyhow::Result<()> {
 
     // TODO: Consider embedding a git client
     if !temp_dir.path().join(".git").try_exists()? {
-        let status = Command::new("git")
-            .current_dir(temp_dir.path())
-            .args(["clone", &options.git, "."])
-            .status()?;
+        let mut command = Command::new("git");
+        command.current_dir(temp_dir.path()).arg("clone");
+        if let Some(branch) = options.branch.as_deref() {
+            command.args(["--branch", branch]);
+        }
+        command.args([&options.git, "."]);
+        let status = command.status()?;
+        ensure!(status.success());
+    } else {
+        let mut command = Command::new("git");
+        command.current_dir(temp_dir.path()).arg("pull");
+        let status = command.status()?;
         ensure!(status.success());
     }
 

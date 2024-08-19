@@ -12,13 +12,13 @@ bewu-util = { path = "../lib/bewu-util-rs", features = ["abort-join-handle", "st
 fd-lock = "4.0.2"
 kitsu = { path = "../lib/kitsu-rs", features = [ "rustls-tls" ], default-features = false }
 nd-util = { git = "https://github.com/nathaniel-daniel/nd-util-rs", features = [ "arc-anyhow-error" ] }
-serde = { version = "1.0.204", features = ["derive"] }
-serde_json = "1.0.120"
-tokio = { version = "1.38.1", features = [ "rt", "rt-multi-thread", "signal", "macros" ] }
+serde = { version = "1.0.208", features = ["derive"] }
+serde_json = "1.0.125"
+tokio = { version = "1.39.3", features = [ "rt", "rt-multi-thread", "signal", "macros" ] }
 tokio-ffmpeg-cli = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs" }
 tokio-stream = "0.1.15"
-toml = "0.8.15"
-tower = "0.4.13"
+toml = "0.8.19"
+tower = { version = "0.4.13" }
 tower-http = { version = "0.5.2", features = [ "fs", "trace" ] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = [ "env-filter" ] }

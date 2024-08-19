@@ -8,6 +8,6 @@ license = "MIT OR Apache-2.0"
 anyhow = "1.0.86"
 argh = "0.1.12"
 cargo_metadata = "0.18.1"
-ctrlc = "3.4.4"
+ctrlc = "3.4.5"
 walkdir = "2.5.0"
 xtask-util = { path = "../lib/xtask-util-rs" }
