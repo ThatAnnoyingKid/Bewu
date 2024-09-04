@@ -9,7 +9,7 @@ anyhow = "1.0.86"
 ar = "0.9.0"
 argh = "0.1.12"
 cargo_metadata = "0.18.1"
-flate2 = "1.0.31"
+flate2 = "1.0.33"
 fslock = "0.2.1"
 rusqlite = { version = "0.32.1", features = [ "bundled" ] }
 tar = "0.4.41"
