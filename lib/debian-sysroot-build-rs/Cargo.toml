@@ -12,6 +12,6 @@ cargo_metadata = "0.18.1"
 flate2 = "1.0.33"
 fslock = "0.2.1"
 rusqlite = { version = "0.32.1", features = [ "bundled" ] }
-tar = "0.4.41"
+tar = "0.4.42"
 ureq = "2.10.1"
 xz2 = "0.1.7"
