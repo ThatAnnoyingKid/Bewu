@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["GET_CARGO_HOME_SH"],"fn":["main"],"struct":["Options","TempDir"]};
