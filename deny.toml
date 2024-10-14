@@ -12,7 +12,7 @@ ignore = []
 [licenses]
 confidence-threshold = 0.93
 private = { ignore = true }
-allow = [ "Apache-2.0", "MIT", "Unicode-DFS-2016", "BSD-3-Clause", "MPL-2.0", "ISC", "OpenSSL" ]
+allow = [ "Apache-2.0", "MIT", "Unicode-DFS-2016", "BSD-3-Clause", "MPL-2.0", "ISC", "OpenSSL", "Zlib" ]
 exceptions = []
 
 [[licenses.clarify]]
@@ -51,6 +51,7 @@ skip = [
     { name = "sync_wrapper", version = "0.1.2" },
     { name = "phf_codegen", version = "0.10.0" },
     { name = "windows-sys", version = "0.52.0" },
+    { name = "hashbrown", version = "0.14.5" },
 ]
 deny = []
 
