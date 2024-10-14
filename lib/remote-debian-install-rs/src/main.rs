@@ -127,20 +127,43 @@ fn main() -> anyhow::Result<()> {
     let target = "x86_64-unknown-linux-gnu";
 
     // TODO: Consider embedding a git client
-    if !temp_dir.path().join(".git").try_exists()? {
-        let mut command = Command::new("git");
-        command.current_dir(temp_dir.path()).arg("clone");
-        if let Some(branch) = options.branch.as_deref() {
-            command.args(["--branch", branch]);
+    let git_dir = temp_dir.path().join(".git");
+    let git_head = git_dir.join("HEAD");
+    let git_dir_exists = git_dir.try_exists()?;
+    let git_head_exists = git_dir_exists && git_head.try_exists()?;
+    match (git_dir_exists, git_head_exists) {
+        // If the git dir exists and it seems like a valid git repo, just pull.
+        (true, true) => {
+            let path = temp_dir.path();
+
+            let mut command = Command::new("git");
+            command.current_dir(path).arg("pull");
+            let status = command.status()?;
+            ensure!(
+                status.success(),
+                "failed to `git pull` \"{}\"",
+                path.display()
+            );
         }
-        command.args([&options.git, "."]);
-        let status = command.status()?;
-        ensure!(status.success());
-    } else {
-        let mut command = Command::new("git");
-        command.current_dir(temp_dir.path()).arg("pull");
-        let status = command.status()?;
-        ensure!(status.success());
+        // On Windows, it appears that the storage cleaner appers to only delete temp files, not folders.
+        // This leads to a scenario where the git folder may exist but the files may not.
+        // If the git HEAD does not exist, delete the entire folder and re-clone.
+        (true, false) => {
+            let path = temp_dir.path();
+
+            std::fs::remove_dir_all(path)
+                .with_context(|| format!("failed to delete folder \"{}\"", path.display()))?;
+            std::fs::create_dir(path)
+                .with_context(|| format!("failed to delete folder \"{}\"", path.display()))?;
+
+            git_clone(path, &options.git, options.branch.as_deref())?;
+        }
+        // The git dir does not exist, just re-clone.
+        (false, _) => {
+            let path = temp_dir.path();
+
+            git_clone(path, &options.git, options.branch.as_deref())?;
+        }
     }
 
     let cargo_metadata = MetadataCommand::new().current_dir(temp_dir.path()).exec()?;
@@ -264,6 +287,25 @@ fn main() -> anyhow::Result<()> {
     }
 
     temp_dir.close()?;
+
+    Ok(())
+}
+
+fn git_clone(path: &Path, src: &str, branch: Option<&str>) -> anyhow::Result<()> {
+    let mut command = Command::new("git");
+    command.current_dir(path).arg("clone");
+    if let Some(branch) = branch {
+        command.args(["--branch", branch]);
+    }
+    command.args([src, "."]);
+    let status = command
+        .status()
+        .context("failed to spawn `git clone` command")?;
+    ensure!(
+        status.success(),
+        "failed to `git clone` to \"{}\"",
+        path.display()
+    );
 
     Ok(())
 }
