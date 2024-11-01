@@ -5,16 +5,16 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-anyhow = "1.0.89"
+anyhow = "1.0.92"
 nd-async-rusqlite = { git = "https://github.com/nathaniel-daniel/nd-async-rusqlite-rs", features = [ "bundled" ] }
 axum = "0.7.7"
 bewu-util = { path = "../lib/bewu-util-rs", features = ["abort-join-handle", "state-update-channel", "parse-ffmpeg-time", "async-lock-file", "async-timed-lru-cache"] }
 fd-lock = "4.0.2"
 kitsu = { path = "../lib/kitsu-rs", features = [ "rustls-tls" ], default-features = false }
 nd-util = { git = "https://github.com/nathaniel-daniel/nd-util-rs", features = [ "arc-anyhow-error" ] }
-serde = { version = "1.0.209", features = ["derive"] }
-serde_json = "1.0.128"
-tokio = { version = "1.40.0", features = [ "rt", "rt-multi-thread", "signal", "macros" ] }
+serde = { version = "1.0.214", features = ["derive"] }
+serde_json = "1.0.132"
+tokio = { version = "1.41.0", features = [ "rt", "rt-multi-thread", "signal", "macros" ] }
 tokio-ffmpeg-cli = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs" }
 tokio-stream = "0.1.15"
 toml = "0.8.19"
