@@ -20,7 +20,7 @@ tokio-stream = "0.1.16"
 toml = "0.8.19"
 tower = { version = "0.5.1" }
 tower-http = { version = "0.6.2", features = [ "fs", "trace" ] }
-tracing = "0.1.40"
-tracing-subscriber = { version = "0.3.18", features = [ "env-filter" ] }
-url = "2.5.3"
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = [ "env-filter" ] }
+url = "2.5.4"
 vidstreaming = { path = "../lib/vidstreaming-rs", features = [ "rustls-tls" ], default-features = false }

@@ -7,7 +7,7 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 anyhow = "1.0.93"
 argh = "0.1.12"
-cargo_metadata = "0.18.1"
+cargo_metadata = "0.19.0"
 deploy-deb = { version = "0.0.0", path = "../deploy-deb-rs" }
 indicatif = "0.17.9"
 libssh-rs = { git = "https://github.com/wez/libssh-rs", features = [ "vendored", "vendored-openssl" ] }
