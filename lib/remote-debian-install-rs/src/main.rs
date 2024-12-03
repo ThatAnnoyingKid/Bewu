@@ -168,21 +168,25 @@ fn main() -> anyhow::Result<()> {
 
     let cargo_metadata = MetadataCommand::new().current_dir(temp_dir.path()).exec()?;
     let workspace_packages = cargo_metadata.workspace_packages();
-    let bin_name = match (workspace_packages.len(), options.package.as_deref()) {
+    let package = match (workspace_packages.len(), options.package.as_deref()) {
         (0, _) => bail!("workspace has no members"),
-        (1, None) => workspace_packages[0].name.clone(),
+        (1, None) => &workspace_packages[0],
         (_, None) => {
             bail!("more than one package, need to specify package name");
         }
-        (_n, Some(package_name)) => {
-            let has_package = workspace_packages
-                .iter()
-                .any(|package| package.name == package_name);
-            ensure!(has_package, "no package with name \"{package_name}\"");
-
-            package_name.to_string()
-        }
+        (_n, Some(package_name)) => workspace_packages
+            .iter()
+            .find(|package| package.name == package_name)
+            .with_context(|| format!("no package with name \"{package_name}\""))?,
     };
+    // TODO: Account for multiple bins
+    let bin_name = package
+        .targets
+        .iter()
+        .find(|target| target.is_bin())
+        .context("package does not have a bin target")?
+        .name
+        .clone();
 
     // TODO: Consider embedding deploy-deb
     let mut command = Command::new("debian-sysroot-build");
