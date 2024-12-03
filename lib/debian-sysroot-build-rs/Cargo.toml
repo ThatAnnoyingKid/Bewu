@@ -8,7 +8,7 @@ license = "MIT OR Apache-2.0"
 anyhow = "1.0.94"
 ar = "0.9.0"
 argh = "0.1.12"
-cargo_metadata = "0.18.1"
+cargo_metadata = "0.19.1"
 flate2 = "1.0.35"
 fslock = "0.2.1"
 rusqlite = { version = "0.32.1", features = [ "bundled" ] }
