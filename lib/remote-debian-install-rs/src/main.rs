@@ -123,8 +123,34 @@ fn main() -> anyhow::Result<()> {
     // Only delete on success.
     temp_dir.set_persist(true);
 
-    // TODO: Get from remote
-    let target = "x86_64-unknown-linux-gnu";
+    // TODO: Validate that the host arch doesn't change while we build
+    let dpkg_arch = {
+        let session = deploy_deb::init_ssh_session(&options.remote)?;
+
+        {
+            let channel = session.new_channel()?;
+            channel.open_session()?;
+            channel.request_exec("dpkg --print-architecture")?;
+            channel.send_eof()?;
+
+            let mut buffer = Vec::new();
+            std::io::copy(&mut channel.stdout(), &mut buffer)?;
+
+            // Remove /n
+            assert!(buffer.ends_with(b"\n"));
+            buffer.pop();
+
+            let exit_status = channel.get_exit_status().context("missing exit status")?;
+            ensure!(exit_status == 0, "invalid exit status {exit_status}");
+
+            String::from_utf8(buffer)?
+        }
+    };
+    let target = match dpkg_arch.as_str() {
+        "arm64" => "aarch64-unknown-linux-gnu",
+        "amd64" => "x86_64-unknown-linux-gnu",
+        _ => bail!("unknown dpkg arch \"{dpkg_arch}\""),
+    };
 
     // TODO: Consider embedding a git client
     let git_dir = temp_dir.path().join(".git");
