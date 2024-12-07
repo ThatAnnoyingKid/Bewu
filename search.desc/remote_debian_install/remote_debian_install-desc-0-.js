@@ -1,0 +1,1 @@
+searchState.loadedDescShard("remote_debian_install", 0, "Delete this dir, if not persisted.\nReturns the argument unchanged.\nReturns the argument unchanged.\nCalls <code>U::from(self)</code>.\nCalls <code>U::from(self)</code>.\nMake a new temp dir.\nGet the path\nSet whether this will persist.")
