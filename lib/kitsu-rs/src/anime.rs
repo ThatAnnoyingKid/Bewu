@@ -97,7 +97,7 @@ pub enum AgeRating {
     Other(String),
 }
 
-impl<'a> From<&'a str> for AgeRating {
+impl From<&'_ str> for AgeRating {
     fn from(s: &str) -> Self {
         match s {
             "G" => Self::General,
