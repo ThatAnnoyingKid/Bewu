@@ -6,9 +6,9 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 json-api = { git = "https://github.com/adumbidiot/json_api-rs" }
-serde = { version = "1.0.215", features = [ "derive" ] }
-serde_json = "1.0.133"
-thiserror = "2.0.5"
+serde = { version = "1.0.217", features = [ "derive" ] }
+serde_json = "1.0.134"
+thiserror = "2.0.9"
 url = { version = "2.5.4", features = [ "serde" ] }
 
 [dev-dependencies]
