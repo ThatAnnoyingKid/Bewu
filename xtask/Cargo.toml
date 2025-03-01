@@ -5,8 +5,8 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-anyhow = "1.0.94"
-argh = "0.1.12"
+anyhow = "1.0.96"
+argh = "0.1.13"
 cargo_metadata = "0.19.1"
 ctrlc = "3.4.5"
 walkdir = "2.5.0"
