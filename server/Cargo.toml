@@ -5,20 +5,20 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-anyhow = "1.0.94"
+anyhow = "1.0.97"
 nd-async-rusqlite = { git = "https://github.com/nathaniel-daniel/nd-async-rusqlite-rs", features = [ "bundled" ] }
 axum = "0.7.9"
 bewu-util = { path = "../lib/bewu-util-rs", features = ["abort-join-handle", "state-update-channel", "parse-ffmpeg-time", "async-lock-file", "async-timed-lru-cache"] }
-fd-lock = "4.0.2"
+fd-lock = "4.0.4"
 kitsu = { path = "../lib/kitsu-rs", features = [ "rustls-tls" ], default-features = false }
 nd-util = { git = "https://github.com/nathaniel-daniel/nd-util-rs", features = [ "arc-anyhow-error" ] }
-serde = { version = "1.0.215", features = ["derive"] }
-serde_json = "1.0.133"
-tokio = { version = "1.42.0", features = [ "rt", "rt-multi-thread", "signal", "macros" ] }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+tokio = { version = "1.44.1", features = [ "rt", "rt-multi-thread", "signal", "macros" ] }
 tokio-ffmpeg-cli = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs" }
 tokio-stream = "0.1.17"
-toml = "0.8.19"
-tower = { version = "0.5.1" }
+toml = "0.8.20"
+tower = { version = "0.5.2" }
 tower-http = { version = "0.6.2", features = [ "fs", "trace" ] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = [ "env-filter" ] }
