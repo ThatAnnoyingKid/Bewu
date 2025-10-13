@@ -48,6 +48,9 @@ struct FmtOptions {}
 struct BuildDebOptions {
     #[argh(option, description = "the target triple to build")]
     target: String,
+
+    #[argh(option, description = "the debian release of the server")]
+    debian_release: String,
 }
 
 #[derive(Debug, argh::FromArgs)]
@@ -62,6 +65,9 @@ struct DeployDebOptions {
 
     #[argh(option, description = "the server to deploy to")]
     hostname: String,
+
+    #[argh(option, description = "the debian release of the server")]
+    debian_release: String,
 }
 
 fn build_frontend(metadata: &cargo_metadata::Metadata) -> anyhow::Result<()> {
@@ -126,7 +132,11 @@ fn fmt_all(metadata: &cargo_metadata::Metadata) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn build_deb(metadata: &cargo_metadata::Metadata, target: &str) -> anyhow::Result<()> {
+fn build_deb(
+    metadata: &cargo_metadata::Metadata,
+    target: &str,
+    debain_release: &str,
+) -> anyhow::Result<()> {
     build_frontend(metadata)?;
     fmt_all(metadata)?;
 
@@ -135,6 +145,7 @@ fn build_deb(metadata: &cargo_metadata::Metadata, target: &str) -> anyhow::Resul
         .current_dir(metadata.workspace_root.join("server"))
         .args(["--target", target])
         .args(["--package", SERVER_BIN])
+        .args(["--debian-release", debain_release])
         .args([
             "--install-package",
             "libc6",
@@ -208,7 +219,11 @@ fn main() -> anyhow::Result<()> {
         Subcommand::BuildDeb(options) => {
             let metadata = MetadataCommand::new().exec()?;
 
-            build_deb(&metadata, options.target.as_str())?;
+            build_deb(
+                &metadata,
+                options.target.as_str(),
+                options.debian_release.as_str(),
+            )?;
         }
         Subcommand::DeployDeb(options) => {
             let metadata = MetadataCommand::new().exec()?;
@@ -222,7 +237,11 @@ fn main() -> anyhow::Result<()> {
             let hostname = options.hostname.as_str();
             let target = options.target.as_str();
 
-            build_deb(&metadata, options.target.as_str())?;
+            build_deb(
+                &metadata,
+                options.target.as_str(),
+                options.debian_release.as_str(),
+            )?;
 
             let debian_arch = xtask_util::get_debian_arch(target)
                 .with_context(|| format!("failed to get debian arch for \"{target}\""))?;

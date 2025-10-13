@@ -28,6 +28,27 @@ CREATE TABLE IF NOT EXISTS installed_packages (
 ) STRICT;
 ";
 
+fn symlink_dir<S: AsRef<Path>, D: AsRef<Path>>(src: S, dest: D) -> anyhow::Result<()> {
+    let src = src.as_ref();
+    let dest = dest.as_ref();
+
+    cfg_if::cfg_if! {
+        if #[cfg(windows)] {
+            use std::os::windows::fs::symlink_dir;
+            symlink_dir(src, dest)?;
+
+            Ok(())
+        } else if #[cfg(unix)] {
+            use std::os::unix::fs::symlink;
+            symlink(src, dest)?;
+
+            Ok(())
+        } else {
+            bail!("symlinks are not supported on this platform");
+        }
+    }
+}
+
 /// A builder for a debian sysroot.
 ///
 /// # Resources
@@ -100,8 +121,9 @@ impl DebianSysrootBuilder {
         let path = self.base_path.join(&self.release).join(&self.arch);
 
         // TODO: Consider deferring, in the case that the provided release/arch is invalid.
+        let sysroot = path.join("sysroot");
         std::fs::create_dir_all(&path)?;
-        std::fs::create_dir_all(path.join("sysroot"))?;
+        std::fs::create_dir_all(&sysroot)?;
         std::fs::create_dir_all(path.join("packages"))?;
 
         let lock_path = path.join("lock");
@@ -111,8 +133,20 @@ impl DebianSysrootBuilder {
         let database = rusqlite::Connection::open(path.join("database.db"))?;
         database.execute_batch(SETUP_SQL)?;
 
-        let http = ureq::agent();
+        // Setup usrmerge if on trixie.
+        //
+        // The usrmerge package doesn't work on Windows due to needing perl,
+        // which needs ":" in paths.
+        if self.release.as_str() == "trixie" {
+            let usr = sysroot.join("usr");
+            let lib = sysroot.join("lib");
 
+            std::fs::create_dir_all(&usr)?;
+
+            symlink_dir(usr.join("lib"), lib)?;
+        }
+
+        let http = ureq::agent();
         Ok(DebianSysroot {
             path,
             lock,
@@ -304,7 +338,6 @@ impl DebianSysroot {
 
         for dep in package.depends.iter() {
             let package = dep.split_once(' ').map(|(name, _rest)| name).unwrap_or(dep);
-
             self.install(package)?;
         }
 

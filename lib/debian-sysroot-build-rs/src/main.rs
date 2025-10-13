@@ -47,6 +47,9 @@ struct Options {
 
     #[argh(option, description = "build features")]
     features: Option<String>,
+
+    #[argh(option, description = "the target debian release")]
+    debian_release: Option<String>,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -65,9 +68,12 @@ fn main() -> anyhow::Result<()> {
         .with_context(|| format!("failed to get gcc triple for \"{target}\""))?;
 
     let sysroot_path = target_dir.join("debian-sysroot");
-    let mut sysroot = DebianSysrootBuilder::new(sysroot_path.into())
-        .arch(debian_arch)
-        .build()?;
+    let mut sysroot_builder = DebianSysrootBuilder::new(sysroot_path.into());
+    sysroot_builder.arch(debian_arch);
+    if let Some(debian_release) = options.debian_release.as_ref() {
+        sysroot_builder.release(debian_release);
+    }
+    let mut sysroot = sysroot_builder.build()?;
 
     for package in options.install_package.iter() {
         let package = package.replace("%DEBIAN_ARCH%", debian_arch);

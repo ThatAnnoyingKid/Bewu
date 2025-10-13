@@ -447,6 +447,7 @@ dependencies = [
  "ar",
  "argh",
  "cargo_metadata",
+ "cfg-if",
  "flate2",
  "fslock",
  "rusqlite",
