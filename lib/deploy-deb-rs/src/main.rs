@@ -4,7 +4,7 @@ use camino::Utf8Path;
 use camino::Utf8PathBuf;
 use libssh_rs::OpenFlags;
 use libssh_rs::Session;
-use rand::distributions::DistString;
+use rand::distr::SampleString;
 use std::fs::File;
 use std::io::Write;
 
@@ -24,11 +24,7 @@ fn generate_remote_deb_file_name(input: &Utf8Path) -> anyhow::Result<String> {
 
     // Push RNG string to randomize tmp file
     let mut file_stem_extension = String::from("-");
-    rand::distributions::Alphanumeric.append_string(
-        &mut rand::thread_rng(),
-        &mut file_stem_extension,
-        10,
-    );
+    rand::distr::Alphanumeric.append_string(&mut rand::rng(), &mut file_stem_extension, 10);
     file_stem_extension.push_str("-tmp");
     file_stem.push_str(&file_stem_extension);
 

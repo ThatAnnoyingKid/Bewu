@@ -3,7 +3,7 @@ use anyhow::ensure;
 use anyhow::Context;
 use cargo_metadata::MetadataCommand;
 use libssh_rs::OpenFlags;
-use rand::distributions::DistString;
+use rand::distr::SampleString;
 use rand::SeedableRng;
 use rand_chacha::ChaCha12Rng;
 use seahash::SeaHasher;
@@ -62,7 +62,7 @@ impl TempDir {
     pub fn new(name: &str, hash: u64) -> anyhow::Result<Self> {
         let temp_dir = std::env::temp_dir();
         let mut rng = ChaCha12Rng::seed_from_u64(hash);
-        let random_part = rand::distributions::Alphanumeric.sample_string(&mut rng, 12);
+        let random_part = rand::distr::Alphanumeric.sample_string(&mut rng, 12);
         let path = temp_dir.join(format!("{name}-{random_part}"));
 
         match std::fs::create_dir(&path) {
@@ -167,7 +167,7 @@ fn main() -> anyhow::Result<()> {
             let status = command.status()?;
             ensure!(
                 status.success(),
-                "failed to `git pull` \"{}\"",
+                "failed to \"git pull\" \"{}\"",
                 path.display()
             );
         }

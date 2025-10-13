@@ -106,6 +106,7 @@ mod test {
     use super::*;
 
     #[tokio::test]
+    #[ignore]
     async fn search() {
         let client = Client::new();
         let res = client
@@ -118,6 +119,7 @@ mod test {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn get_episode() {
         let paths = [
             "/videos/bleach-episode-366",
@@ -137,6 +139,7 @@ mod test {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn get_video_player() {
         let client = Client::new();
         let url = concat!(

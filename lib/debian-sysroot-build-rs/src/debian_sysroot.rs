@@ -111,7 +111,7 @@ impl DebianSysrootBuilder {
         let database = rusqlite::Connection::open(path.join("database.db"))?;
         database.execute_batch(SETUP_SQL)?;
 
-        let http = ureq::Agent::new();
+        let http = ureq::agent();
 
         Ok(DebianSysroot {
             path,
@@ -159,10 +159,10 @@ impl DebianSysroot {
             self.repository_url, self.release, self.arch
         );
 
-        let response = self.http.get(&packages_url).call()?;
+        let mut response = self.http.get(&packages_url).call()?;
         ensure!(response.status() == 200);
 
-        let response_reader = response.into_reader();
+        let response_reader = response.body_mut().as_reader();
         let mut response_reader = GzDecoder::new(response_reader);
         let mut contents = String::new();
         response_reader.read_to_string(&mut contents)?;
@@ -314,10 +314,8 @@ impl DebianSysroot {
             .join(format!("{install_package_name}.deb"));
         if !downloaded_package_path.try_exists()? {
             let deb_url = format!("{}/{}", self.repository_url, package.file_name);
-            let response = self.http.get(&deb_url).call()?;
+            let mut response = self.http.get(&deb_url).call()?;
             ensure!(response.status() == 200);
-
-            let mut response_reader = response.into_reader();
 
             let tmp_file_path = self
                 .path
@@ -325,7 +323,7 @@ impl DebianSysroot {
                 .join(format!("{install_package_name}.deb.tmp"));
 
             let mut tmp_file = File::create(&tmp_file_path)?;
-            std::io::copy(&mut response_reader, &mut tmp_file)?;
+            std::io::copy(&mut response.body_mut().as_reader(), &mut tmp_file)?;
             tmp_file.flush()?;
             tmp_file.sync_all()?;
 

@@ -200,10 +200,7 @@ async fn get_anime_task_impl(
 ) {
     let result = request_map
         .get(id, || async move {
-            let maybe_anime_result = database
-                .get_kitsu_anime(id)
-                .await
-                .map_err(anyhow::Error::from);
+            let maybe_anime_result = database.get_kitsu_anime(id).await;
 
             if let Ok(Some(anime)) = maybe_anime_result {
                 return Ok(anime);
