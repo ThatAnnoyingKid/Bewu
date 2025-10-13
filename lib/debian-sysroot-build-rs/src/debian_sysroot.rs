@@ -35,12 +35,14 @@ fn symlink_dir<S: AsRef<Path>, D: AsRef<Path>>(src: S, dest: D) -> anyhow::Resul
     cfg_if::cfg_if! {
         if #[cfg(windows)] {
             use std::os::windows::fs::symlink_dir;
-            symlink_dir(src, dest)?;
+            symlink_dir(src, dest)
+                .with_context(|| format!("failed to create symlink from \"{}\" to \"{}\"", dest.display(), src.display()))?;
 
             Ok(())
         } else if #[cfg(unix)] {
             use std::os::unix::fs::symlink;
-            symlink(src, dest)?;
+            symlink(src, dest)
+                .with_context(|| format!("failed to create symlink from \"{}\" to \"{}\"", dest.display(), src.display()))?;
 
             Ok(())
         } else {
@@ -139,11 +141,21 @@ impl DebianSysrootBuilder {
         // which needs ":" in paths.
         if self.release.as_str() == "trixie" {
             let usr = sysroot.join("usr");
+            let usr_lib = usr.join("lib");
+            let usr_lib64 = usr.join("lib64");
+
             let lib = sysroot.join("lib");
+            let lib64 = sysroot.join("lib64");
 
             std::fs::create_dir_all(&usr)?;
 
-            symlink_dir(usr.join("lib"), lib)?;
+            if !lib.try_exists()? {
+                symlink_dir(usr_lib, lib)?;
+            }
+
+            if !lib64.try_exists()? {
+                symlink_dir(usr_lib64, lib64)?;
+            }
         }
 
         let http = ureq::agent();
