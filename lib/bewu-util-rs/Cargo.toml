@@ -9,16 +9,16 @@ anyhow = { version = "1.0.100", optional = true }
 async-stream = { version = "0.3.6", optional = true }
 fd-lock = { version = "4.0.4", optional = true }
 hls-parser = { path = "../hls-parser-rs", optional = true }
-lru = { version = "0.16.1", optional = true }
+lru = { version = "0.16.2", optional = true }
 nd-util = { git = "https://github.com/nathaniel-daniel/nd-util-rs", optional = true }
-reqwest = { version = "0.12.23", default-features = false, optional = true }
-tokio = { version = "1.47.1", optional = true }
+reqwest = { version = "0.12.24", default-features = false, optional = true }
+tokio = { version = "1.48.0", optional = true }
 tokio-ffmpeg-cli = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs", optional = true }
 tokio-stream = { version = "0.1.17", optional = true }
 tokio-util = { version = "0.7.16", optional = true }
 
 [dev-dependencies]
-tokio = { version = "1.47.1", features = [ "macros", "time", "rt" ] }
+tokio = { version = "1.48.0", features = [ "macros", "time", "rt" ] }
 
 [features]
 abort-join-handle = [
