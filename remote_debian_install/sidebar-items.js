@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["GET_CARGO_HOME_SH"],"fn":["git_clone","main"],"struct":["Options","TempDir"]};
