@@ -7,7 +7,7 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 anyhow = "1.0.100"
 argh = "0.1.13"
-cargo_metadata = "0.23.0"
+cargo_metadata = "0.23.1"
 ctrlc = "3.5.1"
 walkdir = "2.5.0"
 xtask-util = { path = "../lib/xtask-util-rs" }

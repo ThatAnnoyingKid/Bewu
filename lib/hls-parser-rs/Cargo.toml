@@ -5,5 +5,5 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-iri-string = "0.7.8"
+iri-string = "0.7.9"
 thiserror = "2.0.17"

@@ -8,7 +8,7 @@ license = "MIT OR Apache-2.0"
 anyhow = "1.0.100"
 argh = "0.1.13"
 bewu-util = { path = "../bewu-util-rs", features = [ "download-hls" ] }
-indicatif = "0.18.2"
+indicatif = "0.18.3"
 nd-util = { git = "https://github.com/nathaniel-daniel/nd-util-rs" }
 reqwest = { version = "0.12.24", default-features = false }
 serde = { version = "1.0.228", features = [ "derive" ] }
