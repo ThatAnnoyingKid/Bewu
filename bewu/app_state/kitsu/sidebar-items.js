@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["KitsuTaskMessage"],"fn":["get_anime_task_impl","kitsu_get_anime","kitsu_search","kitsu_task_impl","search_task_impl"],"struct":["KitsuTask"],"type":["SearchCache","SearchResult"]};
