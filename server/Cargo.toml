@@ -6,21 +6,21 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 anyhow = "1.0.100"
-axum = "0.8.7"
+axum = "0.8.8"
 bewu-util = { path = "../lib/bewu-util-rs", features = ["abort-join-handle", "state-update-channel", "parse-ffmpeg-time", "async-lock-file", "async-timed-lru-cache"] }
 fd-lock = "4.0.4"
 kitsu = { path = "../lib/kitsu-rs", features = [ "rustls-tls" ], default-features = false }
 nd-async-rusqlite = { git = "https://github.com/nathaniel-daniel/nd-async-rusqlite-rs", features = [ "bundled" ] }
 nd-util = { git = "https://github.com/nathaniel-daniel/nd-util-rs", features = [ "arc-anyhow-error" ] }
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.145"
+serde_json = "1.0.148"
 tokio = { version = "1.48.0", features = [ "rt", "rt-multi-thread", "signal", "macros" ] }
 tokio-ffmpeg-cli = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs" }
 tokio-stream = "0.1.17"
-toml = "0.9.8"
+toml = "0.9.10"
 tower = { version = "0.5.2" }
 tower-http = { version = "0.6.7", features = [ "fs", "trace" ] }
-tracing = "0.1.43"
+tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = [ "env-filter" ] }
 url = "2.5.7"
 vidstreaming = { path = "../lib/vidstreaming-rs", features = [ "rustls-tls" ], default-features = false }
