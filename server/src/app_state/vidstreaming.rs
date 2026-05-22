@@ -389,7 +389,7 @@ async fn download_task_impl(
         best_source.file, best_source.label, best_source.kind
     );
 
-    let temp_path = nd_util::with_push_extension(&out_path, "part");
+    let temp_path = out_path.with_added_extension("part");
 
     let mut download_stream = match tokio_ffmpeg_cli::Builder::new()
         .audio_codec("copy")

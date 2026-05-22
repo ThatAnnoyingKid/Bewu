@@ -52,9 +52,9 @@ pub fn download_hls<P>(
 where
     P: AsRef<Path>,
 {
-    let _out_path = out_path.as_ref();
-    let temp_out_path = nd_util::with_push_extension(&out_path, "part");
-    let temp_dir_path = nd_util::with_push_extension(&out_path, "dir.part");
+    let out_path = out_path.as_ref().to_path_buf();
+    let temp_out_path = out_path.with_added_extension("part");
+    let temp_dir_path = out_path.with_added_extension("dir.part");
     let temp_dir_lock_file_path = temp_dir_path.join("lockfile");
 
     // Parse url.

@@ -1,8 +1,8 @@
 use crate::BASE_URL;
 use cbc::cipher::KeyIvInit;
 use cipher::block_padding::Pkcs7;
-use cipher::BlockDecryptMut;
-use cipher::BlockEncryptMut;
+use cipher::BlockModeDecrypt;
+use cipher::BlockModeEncrypt;
 use once_cell::sync::Lazy;
 use scraper::Html;
 use scraper::Selector;
@@ -64,7 +64,7 @@ pub enum DecryptCryptoDataValueError {
 
     /// Padding error
     #[error(transparent)]
-    Padding(#[from] cipher::block_padding::UnpadError),
+    Padding(#[from] cipher::block_padding::Error),
 
     /// A value was not utf8
     #[error(transparent)]
@@ -196,7 +196,7 @@ impl VideoPlayer {
         let cipher =
             Aes256CbcDec::new_from_slices(self.request_key.as_bytes(), self.request_iv.as_bytes())?;
 
-        let decrypted_len = cipher.decrypt_padded_mut::<Pkcs7>(&mut ciphertext)?.len();
+        let decrypted_len = cipher.decrypt_padded::<Pkcs7>(&mut ciphertext)?.len();
         ciphertext.truncate(decrypted_len);
         let decrypted = ciphertext;
 
@@ -212,7 +212,7 @@ impl VideoPlayer {
 
         let cipher =
             Aes256CbcEnc::new_from_slices(self.request_key.as_bytes(), self.request_iv.as_bytes())?;
-        let encrypted_id = cipher.encrypt_padded_vec_mut::<Pkcs7>(id.as_bytes());
+        let encrypted_id = cipher.encrypt_padded_vec::<Pkcs7>(id.as_bytes());
         let encrypted_base64_id = STANDARD.encode(encrypted_id);
 
         Ok(encrypted_base64_id)
@@ -259,7 +259,7 @@ pub enum DecryptVideoDataError {
 
     /// Padding error
     #[error(transparent)]
-    Padding(#[from] cipher::block_padding::UnpadError),
+    Padding(#[from] cipher::block_padding::Error),
 
     /// A value was not utf8
     #[error(transparent)]
@@ -290,7 +290,7 @@ impl EncryptedVideoData {
             player.request_iv.as_bytes(),
         )?;
 
-        let decrypted_len = cipher.decrypt_padded_mut::<Pkcs7>(&mut ciphertext)?.len();
+        let decrypted_len = cipher.decrypt_padded::<Pkcs7>(&mut ciphertext)?.len();
         ciphertext.truncate(decrypted_len);
         let decrypted = ciphertext;
 
