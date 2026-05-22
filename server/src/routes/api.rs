@@ -45,15 +45,15 @@ pub fn routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/anime", get(api_anime_get))
         .route("/kitsu/anime", get(api_kitsu_anime))
-        .route("/kitsu/anime/:id", get(api_kitsu_anime_id))
+        .route("/kitsu/anime/{id}", get(api_kitsu_anime_id))
         .route(
-            "/kitsu/anime/:id/episodes",
+            "/kitsu/anime/{id}/episodes",
             get(api_kitsu_anime_id_episodes),
         )
-        .route("/kitsu/episodes/:id", get(api_kitsu_episodes_id))
-        .route("/vidstreaming/:id", get(api_vidstreaming_id))
+        .route("/kitsu/episodes/{id}", get(api_kitsu_episodes_id))
+        .route("/vidstreaming/{id}", get(api_vidstreaming_id))
         .route(
-            "/vidstreaming/:id/download",
+            "/vidstreaming/{id}/download",
             get(api_vidstreaming_id_download),
         )
 }
