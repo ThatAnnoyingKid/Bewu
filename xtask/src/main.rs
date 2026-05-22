@@ -72,12 +72,12 @@ struct DeployDebOptions {
 
 fn build_frontend(metadata: &cargo_metadata::Metadata) -> anyhow::Result<()> {
     let frontend_dir = metadata.workspace_root.join("frontend");
-    let output = xtask_util::npm()
+    let output = xtask_util::pnpm()
         .current_dir(&frontend_dir)
         .args(["run", "build"])
         .status()
-        .context("failed to run npm")?;
-    ensure!(output.success(), "failed to run npm");
+        .context("failed to run pnpm")?;
+    ensure!(output.success(), "failed to run pnpm");
 
     let dist_dir = frontend_dir.join("dist");
     let public_dir = metadata.workspace_root.join("server/public");
@@ -115,12 +115,12 @@ fn build_frontend(metadata: &cargo_metadata::Metadata) -> anyhow::Result<()> {
 }
 
 fn fmt_all(metadata: &cargo_metadata::Metadata) -> anyhow::Result<()> {
-    let output = xtask_util::npm()
+    let output = xtask_util::pnpm()
         .current_dir(metadata.workspace_root.join("frontend"))
         .args(["run", "fmt"])
         .status()
-        .context("failed to spawn command")?;
-    ensure!(output.success(), "failed to run cargo");
+        .context("failed to run pnpm")?;
+    ensure!(output.success(), "failed to run pnpm");
 
     let output = Command::new("cargo")
         .current_dir(&metadata.workspace_root)
