@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["get_debian_arch","get_gcc_triple","main"],"mod":["debian_sysroot"],"struct":["DebianSysrootBuilder","Options"]};

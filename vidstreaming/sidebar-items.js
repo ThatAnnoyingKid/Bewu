@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["AnimeType","DecryptCryptoDataValueError","DecryptVideoDataError","Error","GenerateVideoDataUrlError","InvalidEpisodeError","InvalidSearchResultsError","InvalidVideoPlayerError"],"struct":["Client","EncryptedVideoData","Episode","ParseAnimeTypeError","SearchResults","VideoData","VideoDataSource","VideoPlayer"]};
