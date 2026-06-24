@@ -19,7 +19,7 @@ tokio-ffmpeg-cli = { git = "https://github.com/ThatAnnoyingKid/pikadick-rs" }
 tokio-stream = "0.1.18"
 toml = "1.1.2"
 tower = { version = "0.5.3" }
-tower-http = { version = "0.6.11", features = [ "fs", "trace" ] }
+tower-http = { version = "0.7.0", features = [ "fs", "trace" ] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = [ "env-filter" ] }
 url = "2.5.8"

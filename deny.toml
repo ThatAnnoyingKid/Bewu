@@ -56,8 +56,8 @@ skip = [
     { name = "thiserror-impl", version = "1.0.69" },
     { name = "thiserror", version = "1.0.69" },
     { name = "getrandom", version = "0.2.16" },
-    { name = "hashbrown", version = "0.16.1" },
     { name = "getrandom", version = "0.3.4" },
+    { name = "tower-http", version = "0.6.11" },
 ]
 deny = []
 

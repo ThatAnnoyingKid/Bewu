@@ -7,7 +7,7 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 anyhow = "1.0.102"
 argh = "0.1.19"
-camino = "1.2.2"
+camino = "1.2.3"
 indicatif = "0.18.4"
 libc = "0.2.186"
 # libssh-rs = { version = "0.1.3", features = [ "vendored", "vendored-openssl" ] }

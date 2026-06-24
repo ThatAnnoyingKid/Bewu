@@ -12,7 +12,7 @@ cargo_metadata = "0.23.1"
 cfg-if = "1.0.4"
 flate2 = "1.1.9"
 fslock = "0.2.1"
-rusqlite = { version = "0.39.0", features = [ "bundled" ] }
+rusqlite = { version = "0.40.1", features = [ "bundled" ] }
 tar = "0.4.46"
 ureq = "3.3.0"
 xz2 = "0.1.7"
