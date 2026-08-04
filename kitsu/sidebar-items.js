@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["AgeRating","Error","Status","Subtype"],"struct":["Anime","Client","Episode","JsonDocument","ResourceObject"]};

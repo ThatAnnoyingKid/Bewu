@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["SETUP_SQL"],"fn":["parse_package_list","symlink_dir"],"struct":["DebianSysroot","DebianSysrootBuilder","PackageInfo"]};
